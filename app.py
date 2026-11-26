@@ -1,5 +1,7 @@
+import base64
 from datetime import datetime
 import hmac
+from pathlib import Path
 import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
@@ -18,12 +20,37 @@ LOGIN_BG_URL = (
     "?auto=format&fit=crop&w=1920&q=85"
 )
 
+LOGO_CANDIDATE_PATHS = [
+    "assets/logo_gunadarma.webp",
+    "assets/logo-universitas-gunadarma-png-svg.webp",
+    "logo_gunadarma.webp",
+]
+
+
+def get_logo_data_uri(candidate_paths: list[str]) -> str:
+    for raw_path in candidate_paths:
+        path = Path(raw_path)
+        if path.exists() and path.is_file():
+            ext = path.suffix.lower().lstrip(".")
+            mime = "image/webp" if ext == "webp" else f"image/{ext or 'png'}"
+            encoded = base64.b64encode(path.read_bytes()).decode("utf-8")
+            return f"data:{mime};base64,{encoded}"
+    return ""
+
+
 if "terlogin" not in st.session_state:
     st.session_state.terlogin = False
 if "user_aktif" not in st.session_state:
     st.session_state.user_aktif = ""
 
 if not st.session_state.terlogin:
+    logo_uri = get_logo_data_uri(LOGO_CANDIDATE_PATHS)
+    logo_html = (
+        f'<div class="login-top-left-logo"><img src="{logo_uri}" alt="Logo Universitas Gunadarma" /></div>'
+        if logo_uri
+        else ""
+    )
+
     st.markdown(
         f"""
         <style>
@@ -31,6 +58,19 @@ if not st.session_state.terlogin:
 
             html, body, [class*="css"] {{
                 font-family: 'Plus+Jakarta+Sans', sans-serif;
+            }}
+
+            /* Mencegah teks di luar kolom input memunculkan simbol ketik acak */
+            .stApp,
+            .stApp * {{
+                user-select: none;
+                -webkit-user-select: none;
+            }}
+
+            .stApp input,
+            .stApp textarea {{
+                user-select: text !important;
+                -webkit-user-select: text !important;
             }}
 
             /* Latar belakang paling belakang tetap pemandangan */
@@ -47,17 +87,24 @@ if not st.session_state.terlogin:
                 background: transparent !important;
             }}
 
-           /* Mencegah teks di luar input memunculkan simbol ketik acak */
-            .stApp,
-            .stApp * {{
-                user-select: none;
-                -webkit-user-select: none;
+            /* Logo Universitas Gunadarma di pojok kiri atas laman login */
+            .login-top-left-logo {{
+                position: fixed;
+                top: 18px;
+                left: 22px;
+                z-index: 999;
+                background: rgba(255, 255, 255, 0.94);
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 8px 12px;
+                box-shadow: 0 8px 24px rgba(15, 23, 42, 0.22);
+                pointer-events: none;
             }}
 
-            .stApp input,
-            .stApp textarea {{
-                user-select: text !important;
-                -webkit-user-select: text !important;
+            .login-top-left-logo img {{
+                height: 46px;
+                width: auto;
+                display: block;
             }}
 
             /* Kotak login putih solid menyeluruh */
@@ -77,18 +124,9 @@ if not st.session_state.terlogin:
                 margin: 0 auto !important;
             }}
 
-            div[data-testid="stVerticalBlockBorderWrapper"] {{
-                border: 1px solid #E2E8F0 !important;
-                border-radius: 12px !important;
-                padding: 1.65rem 1.8rem 1.75rem 1.8rem !important;
-                box-shadow: 0 20px 44px rgba(15, 23, 42, 0.34) !important;
-                max-width: 390px !important;
-                margin: 0 auto !important;
-            }}
-
-            div[data-testid="stVerticalBlockBorderWrapper"] p,
-            div[data-testid="stVerticalBlockBorderWrapper"] span,
-            div[data-testid="stVerticalBlockBorderWrapper"] label {{
+            div[data-testid="stVerticalBlockBorderWrapper"]:has(.login-card-anchor) p,
+            div[data-testid="stVerticalBlockBorderWrapper"]:has(.login-card-anchor) span,
+            div[data-testid="stVerticalBlockBorderWrapper"]:has(.login-card-anchor) label {{
                 color: #1A202C !important;
             }}
 
@@ -191,6 +229,9 @@ if not st.session_state.terlogin:
         """,
         unsafe_allow_html=True,
     )
+
+    if logo_html:
+        st.markdown(logo_html, unsafe_allow_html=True)
 
     _, center_col, _ = st.columns([1.15, 1.2, 1.15])
     with center_col:
