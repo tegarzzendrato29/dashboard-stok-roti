@@ -18,7 +18,7 @@ st.markdown(
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
         html, body, [class*="css"] {
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Plus+Jakarta+Sans', sans-serif;
             color: #F9F3EC;
         }
 
@@ -96,18 +96,18 @@ st.markdown(
         }
 
         .stTabs [data-baseweb="tab-list"] {
-            gap: 0.5rem;
+            gap: 1.5rem;
             background-color: #1A120E;
             border: 1px solid #35251C;
             border-radius: 10px;
-            padding: 0.35rem;
+            padding: 0.4rem 0.6rem;
             margin-bottom: 0.75rem;
         }
 
         .stTabs [data-baseweb="tab"] {
             background-color: transparent;
             border-radius: 8px;
-            padding: 0.48rem 0.95rem;
+            padding: 0.5rem 1.25rem;
             font-weight: 700;
             color: #E7D5C3 !important;
         }
@@ -129,6 +129,12 @@ st.markdown(
             border: 1px solid #3B2A1F;
             border-radius: 12px;
             padding: 0.2rem;
+        }
+
+        div[data-testid="stDataFrame"] th {
+            white-space: pre-line !important;
+            line-height: 1.25 !important;
+            text-align: center !important;
         }
 
         div[data-testid="stAlert"] {
@@ -282,7 +288,7 @@ def parse_number(series: pd.Series) -> pd.Series:
 
 def add_gram_suffix(col_name: str) -> str:
     clean_col = col_name.strip()
-    if clean_col in {"Nama Barang", "Status", "Status Stok"}:
+    if clean_col in {"Nama Barang", "Bahan", "Status", "Status Stok"}:
         return clean_col
     if clean_col.endswith("(g)") or clean_col.endswith("(gram)"):
         return clean_col
@@ -428,7 +434,7 @@ with m3:
 st.markdown("<div style='height: 0.45rem;'></div>", unsafe_allow_html=True)
 
 tab_resep, tab_stok, tab_grafik, tab_riwayat = st.tabs([
-    "1. Pembuatan resep",
+    "Pembuatan resep",
     "Data stok bahan baku",
     "Grafik",
     "Riwayat buat resep & penambahan stock",
@@ -603,7 +609,7 @@ with tab_resep:
         )
 
 with tab_stok:
-    col_tabel, col_tambah = st.columns([2.15, 1.05])
+    col_tabel, col_tambah = st.columns([2.5, 1.0])
 
     with col_tabel:
         st.subheader("Data Stok Bahan Baku")
@@ -622,9 +628,54 @@ with tab_stok:
         if filter_status != "Semua Bahan":
             df_tampil = df_tampil[df_tampil["Status"] == filter_status]
 
-        df_tampil_gram = format_table_gram(df_tampil)
+        kolom_ringkas = [
+            "Nama Barang",
+            "Stok Awal",
+            "Stok Min",
+            "Kebutuhan Per 1 Resep Original",
+            "Kebutuhan Per 1 Resep Coklat",
+            "Kebutuhan Per 1 Resep Cokelat",
+            "Kebutuhan Per 1 Resep Cranberry",
+            "Status",
+        ]
+        kolom_ada = []
+        for k in kolom_ringkas:
+            if k in df_tampil.columns and k not in kolom_ada:
+                kolom_ada.append(k)
+
+        df_ringkas = df_tampil[kolom_ada].copy()
+        for c in df_ringkas.columns:
+            if c not in {"Nama Barang", "Status"}:
+                df_ringkas[c] = parse_number(df_ringkas[c]).round(0).astype(int)
+
+        nama_kolom_pendek = {
+            "Nama Barang": "Nama Barang",
+            "Stok Awal": "Stok\n(g)",
+            "Stok Min": "Min\n(g)",
+            "Kebutuhan Per 1 Resep Original": "1 Resep\nOrig (g)",
+            "Kebutuhan Per 1 Resep Coklat": "1 Resep\nCoklat (g)",
+            "Kebutuhan Per 1 Resep Cokelat": "1 Resep\nCokelat (g)",
+            "Kebutuhan Per 1 Resep Cranberry": "1 Resep\nCranberry (g)",
+            "Status": "Status",
+        }
+        df_ringkas_tampil = df_ringkas.rename(
+            columns={c: nama_kolom_pendek.get(c, c) for c in df_ringkas.columns}
+        )
+
+        col_cfg = {}
+        for c in df_ringkas_tampil.columns:
+            if c == "Nama Barang":
+                col_cfg[c] = st.column_config.TextColumn(c, width="medium")
+            elif c == "Status":
+                col_cfg[c] = st.column_config.TextColumn(c, width="small")
+            else:
+                col_cfg[c] = st.column_config.NumberColumn(
+                    c, format="%d", width="small"
+                )
+
         st.dataframe(
-            highlight_status_rows(df_tampil_gram, "Status"),
+            highlight_status_rows(df_ringkas_tampil, "Status"),
+            column_config=col_cfg,
             width="stretch",
             hide_index=True,
         )
@@ -635,7 +686,11 @@ with tab_stok:
         with st.form("form_tambah_bahan"):
             bahan_dipilih = st.selectbox("Pilih Bahan Baku", options=daftar_bahan)
             jumlah_masuk = st.number_input(
-                "Jumlah Stok Masuk (g)", min_value=0.1, value=1.0, step=0.5
+                "Jumlah Stok Masuk (g)",
+                min_value=0,
+                value=1000,
+                step=1000,
+                format="%d",
             )
             ket_masuk = st.text_input("Keterangan (opsional)", value="Restock")
             submit_masuk = st.form_submit_button(
@@ -676,7 +731,7 @@ with tab_stok:
             ws_masuk.append_row([
                 waktu_sekarang,
                 bahan_dipilih,
-                float(jumlah_masuk),
+                int(jumlah_masuk),
                 stok_baru,
                 ket_masuk,
             ])
@@ -684,7 +739,7 @@ with tab_stok:
             pesan_tg = (
                 f"📦 Penambahan Stok Masuk ({waktu_sekarang})\n"
                 f"Bahan: {bahan_dipilih}\n"
-                f"Masuk: +{float(jumlah_masuk)} g | Stok Sekarang: {stok_baru} g\n"
+                f"Masuk: +{int(jumlah_masuk)} g | Stok Sekarang: {stok_baru} g\n"
                 f"Keterangan: {ket_masuk}"
             )
             terkirim = kirim_notifikasi_telegram(pesan_tg)
@@ -692,11 +747,11 @@ with tab_stok:
             st.cache_data.clear()
             if terkirim:
                 st.success(
-                    f"Stok {bahan_dipilih} bertambah +{jumlah_masuk} g menjadi {stok_baru} g dan notifikasi Telegram terkirim."
+                    f"Stok {bahan_dipilih} bertambah +{int(jumlah_masuk)} g menjadi {stok_baru} g dan notifikasi Telegram terkirim."
                 )
             else:
                 st.success(
-                    f"Stok {bahan_dipilih} bertambah +{jumlah_masuk} g menjadi {stok_baru} g."
+                    f"Stok {bahan_dipilih} bertambah +{int(jumlah_masuk)} g menjadi {stok_baru} g."
                 )
             st.rerun()
 
