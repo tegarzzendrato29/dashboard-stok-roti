@@ -314,7 +314,7 @@ total_produksi = (
     else 0
 )
 
-m1, m2, m3, m4 = st.columns([1.2, 1.2, 1.2, 0.85])
+m1, m2, m3 = st.columns(3)
 with m1:
     st.markdown(
         f"""
@@ -354,11 +354,6 @@ with m3:
         """,
         unsafe_allow_html=True,
     )
-with m4:
-    st.markdown("<div style='height: 1.55rem;'></div>", unsafe_allow_html=True)
-    if st.button("🔄 Refresh Data", width="stretch"):
-        st.cache_data.clear()
-        st.rerun()
 
 st.markdown("<div style='height: 0.7rem;'></div>", unsafe_allow_html=True)
 
