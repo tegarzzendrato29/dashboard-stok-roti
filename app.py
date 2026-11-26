@@ -53,7 +53,6 @@ def parse_number(series: pd.Series) -> pd.Series:
 def load_all_data():
     sh = get_spreadsheet()
 
-    # Sheet 1: Stok Bahan Baku (Deteksi baris header "Nama Barang" secara otomatis)
     ws_stok = sh.worksheet("Stok Bahan Baku")
     raw_stok = ws_stok.get_all_values()
 
@@ -93,18 +92,15 @@ def load_all_data():
         if col in df_stok.columns:
             df_stok[col] = parse_number(df_stok[col])
 
-    # Sheet 2: Riwayat_Produksi
     ws_prod = sh.worksheet("Riwayat_Produksi")
     df_prod = pd.DataFrame(ws_prod.get_all_records())
 
-    # Sheet 3: Riwayat_Stok_Masuk
     ws_masuk = sh.worksheet("Riwayat_Stok_Masuk")
     df_masuk = pd.DataFrame(ws_masuk.get_all_records())
 
     return df_stok, df_prod, df_masuk
 
 
-# --- STATE UNTUK PILIHAN VARIAN ---
 if "varian_terpilih" not in st.session_state:
     st.session_state.varian_terpilih = "Original"
 
@@ -116,7 +112,6 @@ except Exception as e:
     st.stop()
 
 
-# --- RINGKASAN METRIK ATAS ---
 total_item = len(df_stok)
 low_stock_count = int((df_stok["Stok Awal"] <= df_stok["Stok Min"]).sum())
 total_produksi = (
@@ -131,13 +126,12 @@ m2.metric("Stok Menipis / Kritis", f"{low_stock_count} Item")
 m3.metric("Total Resep Diproduksi", f"{total_produksi} Resep")
 with m4:
     st.write("")
-    if st.button("Refresh Data", use_container_width=True):
+    if st.button("Refresh Data", width="stretch"):
         st.cache_data.clear()
         st.rerun()
 
 st.divider()
 
-# --- NAVIGASI 4 TAB UTAMA ---
 tab_resep, tab_stok, tab_grafik, tab_riwayat = st.tabs([
     "1. Pembuatan Resep",
     "2. Data Stok Bahan Baku",
@@ -145,36 +139,40 @@ tab_resep, tab_stok, tab_grafik, tab_riwayat = st.tabs([
     "4. Riwayat Buat Resep & Penambahan Stock",
 ])
 
-
-# =========================================================
-# TAB 1: PEMBUATAN RESEP
-# =========================================================
 with tab_resep:
     st.subheader("Pembuatan Resep Produksi")
-    st.caption("Pilih varian roti, masukkan jumlah resep, lalu simpan untuk memotong stok otomatis.")
+    st.caption(
+        "Pilih varian roti, masukkan jumlah resep, lalu simpan untuk memotong stok otomatis."
+    )
 
     v1, v2, v3 = st.columns(3)
     with v1:
         if st.button(
             "Original",
-            type="primary" if st.session_state.varian_terpilih == "Original" else "secondary",
-            use_container_width=True,
+            type="primary"
+            if st.session_state.varian_terpilih == "Original"
+            else "secondary",
+            width="stretch",
         ):
             st.session_state.varian_terpilih = "Original"
             st.rerun()
     with v2:
         if st.button(
             "Cokelat",
-            type="primary" if st.session_state.varian_terpilih == "Cokelat" else "secondary",
-            use_container_width=True,
+            type="primary"
+            if st.session_state.varian_terpilih == "Cokelat"
+            else "secondary",
+            width="stretch",
         ):
             st.session_state.varian_terpilih = "Cokelat"
             st.rerun()
     with v3:
         if st.button(
             "Cranberry",
-            type="primary" if st.session_state.varian_terpilih == "Cranberry" else "secondary",
-            use_container_width=True,
+            type="primary"
+            if st.session_state.varian_terpilih == "Cranberry"
+            else "secondary",
+            width="stretch",
         ):
             st.session_state.varian_terpilih = "Cranberry"
             st.rerun()
@@ -201,6 +199,200 @@ with tab_resep:
             "Keterangan (opsional)", value="-", key="ket_prod"
         )
 
-    # Hitung rincian pemotongan stok
     df_stok[kolom_resep] = parse_number(df_stok[kolom_resep])
     df_stok["Stok Awal"] = parse_number(df_stok["Stok Awal"])
+
+    cek_df = df_stok[["Nama Barang", "Stok Awal", "Stok Min", kolom_resep]].copy()
+    cek_df = cek_df[cek_df[kolom_resep] > 0]
+    cek_df["Kebutuhan Total"] = cek_df[kolom_resep] * jumlah_resep
+    cek_df["Sisa Stok"] = cek_df["Stok Awal"] - cek_df["Kebutuhan Total"]
+
+    st.markdown("**Simulasi Pemakaian Bahan Baku:**")
+    st.dataframe(cek_df, width="stretch", hide_index=True)
+
+    stok_kurang = cek_df[cek_df["Sisa Stok"] < 0]
+    if not stok_kurang.empty:
+        st.error(
+            "Stok tidak mencukupi untuk bahan: "
+            + ", ".join(stok_kurang["Nama Barang"].tolist())
+        )
+    else:
+        if st.button("Simpan & Potong Stok", type="primary", width="stretch"):
+            sh = get_spreadsheet()
+            ws_stok = sh.worksheet("Stok Bahan Baku")
+            ws_prod = sh.worksheet("Riwayat_Produksi")
+
+            raw_stok = ws_stok.get_all_values()
+            header_idx = next(
+                i
+                for i, r in enumerate(raw_stok)
+                if "Nama Barang" in [c.strip() for c in r]
+            )
+            headers = [h.strip() for h in raw_stok[header_idx]]
+            idx_nama = headers.index("Nama Barang")
+            idx_stok_awal = headers.index("Stok Awal")
+
+            sisa_map = dict(zip(cek_df["Nama Barang"], cek_df["Sisa Stok"]))
+
+            for row_offset, r in enumerate(
+                raw_stok[header_idx + 1 :], start=header_idx + 2
+            ):
+                nama_barang = r[idx_nama].strip() if idx_nama < len(r) else ""
+                if nama_barang in sisa_map:
+                    nilai_baru = float(sisa_map[nama_barang])
+                    ws_stok.update_cell(row_offset, idx_stok_awal + 1, nilai_baru)
+
+            waktu_sekarang = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            ws_prod.append_row(
+                [waktu_sekarang, varian, int(jumlah_resep), ket_prod]
+            )
+
+            st.cache_data.clear()
+            st.success(
+                f"Produksi {varian} sebanyak {jumlah_resep} resep berhasil dicatat dan stok diperbarui."
+            )
+            st.rerun()
+
+with tab_stok:
+    st.subheader("Data Stok Bahan Baku")
+
+    col_tabel, col_tambah = st.columns([2.2, 1])
+
+    with col_tabel:
+        df_tampil = df_stok.copy()
+        df_tampil["Status Stok"] = df_tampil.apply(
+            lambda r: "Menipis / Perlu Restock"
+            if r["Stok Awal"] <= r["Stok Min"]
+            else "Aman",
+            axis=1,
+        )
+
+        filter_status = st.selectbox(
+            "Filter Status Stok",
+            options=["Semua Bahan", "Menipis / Perlu Restock", "Aman"],
+            key="filter_status_stok",
+        )
+        if filter_status != "Semua Bahan":
+            df_tampil = df_tampil[df_tampil["Status Stok"] == filter_status]
+
+        st.dataframe(df_tampil, width="stretch", hide_index=True)
+
+    with col_tambah:
+        st.markdown("### Tambah Stok Masuk")
+        daftar_bahan = df_stok["Nama Barang"].tolist()
+        with st.form("form_tambah_bahan"):
+            bahan_dipilih = st.selectbox("Pilih Bahan Baku", options=daftar_bahan)
+            jumlah_masuk = st.number_input(
+                "Jumlah Stok Masuk", min_value=0.1, value=1.0, step=0.5
+            )
+            ket_masuk = st.text_input("Keterangan (opsional)", value="Restock")
+            submit_masuk = st.form_submit_button(
+                "Simpan Stok Masuk", type="primary", width="stretch"
+            )
+
+        if submit_masuk:
+            sh = get_spreadsheet()
+            ws_stok = sh.worksheet("Stok Bahan Baku")
+            ws_masuk = sh.worksheet("Riwayat_Stok_Masuk")
+
+            raw_stok = ws_stok.get_all_values()
+            header_idx = next(
+                i
+                for i, r in enumerate(raw_stok)
+                if "Nama Barang" in [c.strip() for c in r]
+            )
+            headers = [h.strip() for h in raw_stok[header_idx]]
+            idx_nama = headers.index("Nama Barang")
+            idx_stok_awal = headers.index("Stok Awal")
+
+            stok_lama = float(
+                df_stok.loc[
+                    df_stok["Nama Barang"] == bahan_dipilih, "Stok Awal"
+                ].iloc[0]
+            )
+            stok_baru = stok_lama + float(jumlah_masuk)
+
+            for row_offset, r in enumerate(
+                raw_stok[header_idx + 1 :], start=header_idx + 2
+            ):
+                nama_barang = r[idx_nama].strip() if idx_nama < len(r) else ""
+                if nama_barang == bahan_dipilih:
+                    ws_stok.update_cell(row_offset, idx_stok_awal + 1, stok_baru)
+                    break
+
+            waktu_sekarang = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            ws_masuk.append_row([
+                waktu_sekarang,
+                bahan_dipilih,
+                float(jumlah_masuk),
+                stok_baru,
+                ket_masuk,
+            ])
+
+            st.cache_data.clear()
+            st.success(
+                f"Stok {bahan_dipilih} bertambah +{jumlah_masuk} menjadi {stok_baru}."
+            )
+            st.rerun()
+
+with tab_grafik:
+    st.subheader("Visualisasi Stok Bahan Baku & Produksi")
+
+    if (
+        not df_stok.empty
+        and "Nama Barang" in df_stok.columns
+        and "Stok Awal" in df_stok.columns
+    ):
+        df_chart = df_stok[["Nama Barang", "Stok Awal", "Stok Min"]].melt(
+            id_vars="Nama Barang",
+            value_vars=["Stok Awal", "Stok Min"],
+            var_name="Kategori",
+            value_name="Jumlah",
+        )
+        fig_stok = px.bar(
+            df_chart,
+            x="Nama Barang",
+            y="Jumlah",
+            color="Kategori",
+            barmode="group",
+            title="Perbandingan Stok Saat Ini vs Stok Minimum",
+            color_discrete_map={"Stok Awal": "#2E86C1", "Stok Min": "#E74C3C"},
+        )
+        st.plotly_chart(fig_stok, width="stretch")
+
+    if (
+        not df_prod.empty
+        and "Varian" in df_prod.columns
+        and "Jumlah Resep" in df_prod.columns
+    ):
+        df_prod_chart = df_prod.copy()
+        df_prod_chart["Jumlah Resep"] = parse_number(df_prod_chart["Jumlah Resep"])
+        rekap_varian = df_prod_chart.groupby("Varian", as_index=False)[
+            "Jumlah Resep"
+        ].sum()
+        fig_prod = px.bar(
+            rekap_varian,
+            x="Varian",
+            y="Jumlah Resep",
+            color="Varian",
+            title="Total Resep Diproduksi per Varian",
+        )
+        st.plotly_chart(fig_prod, width="stretch")
+
+with tab_riwayat:
+    st.subheader("Riwayat Pembuatan Resep & Penambahan Stock")
+
+    col_r1, col_r2 = st.columns(2)
+    with col_r1:
+        st.markdown("### Riwayat Pembuatan Resep")
+        if df_prod.empty:
+            st.info("Belum ada riwayat pembuatan resep.")
+        else:
+            st.dataframe(df_prod, width="stretch", hide_index=True)
+
+    with col_r2:
+        st.markdown("### Riwayat Penambahan Stock")
+        if df_masuk.empty:
+            st.info("Belum ada riwayat penambahan stok.")
+        else:
+            st.dataframe(df_masuk, width="stretch", hide_index=True)
