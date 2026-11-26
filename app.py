@@ -372,7 +372,10 @@ def find_recipe_column(df: pd.DataFrame, varian: str) -> str:
         if k in df.columns:
             return k
     for col in df.columns:
-        if col.strip().startswith("Kebutuhan Per 1 Resep") and varian.lower() in col.lower():
+        if (
+            col.strip().startswith("Kebutuhan Per 1 Resep")
+            and varian.lower() in col.lower()
+        ):
             return col
     return kandidat[0]
 
@@ -839,17 +842,61 @@ with tab_stok:
                     st.rerun()
 
 with tab_grafik:
-    st.subheader("Visualisasi Tren Stok & Produksi")
+    t_col1, t_col2 = st.columns([1.0, 1.0])
+    with t_col1:
+        aktif_filter = st.toggle(
+            "Filter Interaktif", value=True, key="toggle_filter_grafik"
+        )
+    with t_col2:
+        aktif_buffer = st.toggle(
+            "Sisa Buffer / % Stok Aman", value=True, key="toggle_buffer_grafik"
+        )
+
+    df_grafik_stok = df_stok.copy()
+    df_grafik_prod = df_prod.copy()
+    varian_dipilih_grafik = "Semua"
+
+    if aktif_filter:
+        f_col1, f_col2 = st.columns([1.3, 1.2])
+        with f_col1:
+            semua_bahan = df_stok["Nama Barang"].tolist()
+            bahan_filter = st.multiselect(
+                "Pilih Bahan Baku",
+                options=semua_bahan,
+                default=semua_bahan,
+                key="ms_bahan_grafik",
+            )
+            if bahan_filter:
+                df_grafik_stok = df_grafik_stok[
+                    df_grafik_stok["Nama Barang"].isin(bahan_filter)
+                ]
+        with f_col2:
+            varian_dipilih_grafik = st.selectbox(
+                "Filter Varian Produksi",
+                options=["Semua", "Original", "Cokelat", "Cranberry"],
+                key="sb_varian_grafik",
+            )
+            if (
+                not df_grafik_prod.empty
+                and "Varian" in df_grafik_prod.columns
+                and varian_dipilih_grafik != "Semua"
+            ):
+                df_grafik_prod = df_grafik_prod[
+                    df_grafik_prod["Varian"].astype(str).str.strip().str.lower()
+                    == varian_dipilih_grafik.lower()
+                ]
 
     g1, g2 = st.columns(2)
 
     with g1:
         if (
-            not df_stok.empty
-            and "Nama Barang" in df_stok.columns
-            and "Stok Awal" in df_stok.columns
+            not df_grafik_stok.empty
+            and "Nama Barang" in df_grafik_stok.columns
+            and "Stok Awal" in df_grafik_stok.columns
         ):
-            df_chart = df_stok[["Nama Barang", "Stok Awal", "Stok Min"]].melt(
+            df_chart = df_grafik_stok[
+                ["Nama Barang", "Stok Awal", "Stok Min"]
+            ].melt(
                 id_vars="Nama Barang",
                 value_vars=["Stok Awal", "Stok Min"],
                 var_name="Kategori",
@@ -892,11 +939,11 @@ with tab_grafik:
 
     with g2:
         if (
-            not df_prod.empty
-            and "Varian" in df_prod.columns
-            and "Jumlah Resep" in df_prod.columns
+            not df_grafik_prod.empty
+            and "Varian" in df_grafik_prod.columns
+            and "Jumlah Resep" in df_grafik_prod.columns
         ):
-            df_prod_chart = df_prod.copy()
+            df_prod_chart = df_grafik_prod.copy()
             df_prod_chart["Jumlah Resep"] = parse_number(
                 df_prod_chart["Jumlah Resep"]
             )
@@ -937,6 +984,102 @@ with tab_grafik:
                 ),
             )
             st.plotly_chart(fig_prod, width="stretch")
+
+    if aktif_buffer and not df_grafik_stok.empty:
+        df_buf = df_grafik_stok[["Nama Barang", "Stok Awal", "Stok Min"]].copy()
+        df_buf["Stok Awal"] = parse_number(df_buf["Stok Awal"])
+        df_buf["Stok Min"] = parse_number(df_buf["Stok Min"])
+        df_buf["Buffer (g)"] = (df_buf["Stok Awal"] - df_buf["Stok Min"]).round(
+            0
+        ).astype(int)
+        df_buf["% Stok Aman"] = df_buf.apply(
+            lambda r: round((r["Stok Awal"] / r["Stok Min"]) * 100, 1)
+            if r["Stok Min"] > 0
+            else 100.0,
+            axis=1,
+        )
+        df_buf["Status"] = df_buf.apply(
+            lambda r: "Menipis" if r["Stok Awal"] <= r["Stok Min"] else "Aman",
+            axis=1,
+        )
+
+        b1, b2 = st.columns(2)
+        with b1:
+            fig_buf = px.bar(
+                df_buf,
+                x="Nama Barang",
+                y="Buffer (g)",
+                color="Status",
+                title="Sisa Buffer di Atas Batas Minimum (g)",
+                color_discrete_map={
+                    "Aman": "#22C55E",
+                    "Menipis": "#FDE047",
+                },
+            )
+            fig_buf.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="#140D0A",
+                font=dict(color="#FFFBEB"),
+                legend=dict(
+                    bgcolor="rgba(26,18,14,0.92)",
+                    bordercolor="#4A3528",
+                    borderwidth=1,
+                    font=dict(color="#FFFBEB"),
+                ),
+                xaxis=dict(
+                    gridcolor="#2A1C15",
+                    linecolor="#4A3528",
+                    tickfont=dict(color="#FFFBEB"),
+                ),
+                yaxis=dict(
+                    gridcolor="#2A1C15",
+                    linecolor="#4A3528",
+                    tickfont=dict(color="#FFFBEB"),
+                ),
+            )
+            st.plotly_chart(fig_buf, width="stretch")
+
+        with b2:
+            fig_pct = px.bar(
+                df_buf,
+                x="Nama Barang",
+                y="% Stok Aman",
+                color="Status",
+                title="Persentase Stok vs Batas Minimum (%)",
+                color_discrete_map={
+                    "Aman": "#22C55E",
+                    "Menipis": "#FDE047",
+                },
+            )
+            fig_pct.add_hline(
+                y=100,
+                line_dash="dash",
+                line_color="#F87171",
+                annotation_text="Batas Min (100%)",
+                annotation_font_color="#FCA5A5",
+            )
+            fig_pct.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="#140D0A",
+                font=dict(color="#FFFBEB"),
+                legend=dict(
+                    bgcolor="rgba(26,18,14,0.92)",
+                    bordercolor="#4A3528",
+                    borderwidth=1,
+                    font=dict(color="#FFFBEB"),
+                ),
+                xaxis=dict(
+                    gridcolor="#2A1C15",
+                    linecolor="#4A3528",
+                    tickfont=dict(color="#FFFBEB"),
+                ),
+                yaxis=dict(
+                    gridcolor="#2A1C15",
+                    linecolor="#4A3528",
+                    tickfont=dict(color="#FFFBEB"),
+                ),
+            )
+            st.plotly_chart(fig_pct, width="stretch")
 
 with tab_riwayat:
     col_r1, col_r2 = st.columns(2)
