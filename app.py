@@ -143,6 +143,19 @@ st.markdown(
             color: #FFFBEB !important;
         }
 
+        div[data-testid="stExpander"] {
+            background-color: #1B130F;
+            border: 1px solid #4A3528;
+            border-radius: 12px;
+        }
+
+        div[data-testid="stExpander"] summary,
+        div[data-testid="stExpander"] summary p,
+        div[data-testid="stExpander"] summary span {
+            color: #FDE68A !important;
+            font-weight: 700 !important;
+        }
+
         input, textarea {
             color: #FFFBEB !important;
             background-color: #231812 !important;
@@ -648,96 +661,6 @@ with tab_stok:
         )
 
     with col_tambah:
-        st.subheader("Tambah Bahan Baku Baru")
-        with st.form("form_bahan_baru", clear_on_submit=True):
-            nama_bahan_baru = st.text_input("Nama Barang", placeholder="Contoh: Air")
-            b1, b2 = st.columns(2)
-            with b1:
-                stok_awal_baru = st.number_input(
-                    "Stok (g)", min_value=0, value=0, step=1000, format="%d"
-                )
-            with b2:
-                stok_min_baru = st.number_input(
-                    "Min (g)", min_value=0, value=1000, step=1000, format="%d"
-                )
-            r1, r2, r3 = st.columns(3)
-            with r1:
-                orig_baru = st.number_input(
-                    "Orig (g)", min_value=0, value=0, step=1, format="%d"
-                )
-            with r2:
-                coklat_baru = st.number_input(
-                    "Coklat (g)", min_value=0, value=0, step=1, format="%d"
-                )
-            with r3:
-                cranb_baru = st.number_input(
-                    "Cranb (g)", min_value=0, value=0, step=1, format="%d"
-                )
-            submit_bahan_baru = st.form_submit_button(
-                "Simpan Bahan Baku", type="primary", width="stretch"
-            )
-
-        if submit_bahan_baru:
-            nama_bersih = nama_bahan_baru.strip()
-            if not nama_bersih:
-                st.error("Nama Barang tidak boleh kosong.")
-            elif nama_bersih.lower() in [
-                str(x).strip().lower() for x in df_stok["Nama Barang"].tolist()
-            ]:
-                st.error(f"Bahan '{nama_bersih}' sudah ada di tabel.")
-            else:
-                sh = get_spreadsheet()
-                ws_stok = sh.worksheet("Stok Bahan Baku")
-                raw_stok = ws_stok.get_all_values()
-                header_idx = next(
-                    i
-                    for i, r in enumerate(raw_stok)
-                    if "Nama Barang" in [c.strip() for c in r]
-                )
-                headers = [h.strip() for h in raw_stok[header_idx]]
-                while headers and headers[-1] == "":
-                    headers.pop()
-
-                row_to_append = [""] * len(headers)
-                for idx_h, h_name in enumerate(headers):
-                    h_low = h_name.lower()
-                    if h_name == "Nama Barang":
-                        row_to_append[idx_h] = nama_bersih
-                    elif h_name == "Stok Awal":
-                        row_to_append[idx_h] = int(stok_awal_baru)
-                    elif h_name == "Stok Min":
-                        row_to_append[idx_h] = int(stok_min_baru)
-                    elif h_low.startswith("kebutuhan per 1 resep") and "orig" in h_low:
-                        row_to_append[idx_h] = int(orig_baru)
-                    elif h_low.startswith("kebutuhan per 1 resep") and (
-                        "coklat" in h_low or "cokelat" in h_low
-                    ):
-                        row_to_append[idx_h] = int(coklat_baru)
-                    elif h_low.startswith("kebutuhan per 1 resep") and "cranb" in h_low:
-                        row_to_append[idx_h] = int(cranb_baru)
-
-                ws_stok.append_row(row_to_append)
-
-                status_baru = (
-                    "Menipis"
-                    if int(stok_awal_baru) <= int(stok_min_baru)
-                    else "Aman"
-                )
-                pesan_tg = (
-                    f"🆕 Bahan Baku Baru Ditambahkan\n"
-                    f"Bahan: {nama_bersih}\n"
-                    f"Stok: {int(stok_awal_baru)} g | Min: {int(stok_min_baru)} g ({status_baru})\n"
-                    f"Resep (g) -> Orig: {int(orig_baru)} | Coklat: {int(coklat_baru)} | Cranb: {int(cranb_baru)}"
-                )
-                kirim_notifikasi_telegram(pesan_tg)
-
-                st.cache_data.clear()
-                st.success(
-                    f"Bahan baku '{nama_bersih}' berhasil ditambahkan dengan status {status_baru}."
-                )
-                st.rerun()
-
-        st.markdown("<div style='height: 0.75rem;'></div>", unsafe_allow_html=True)
         st.subheader("Tambah Stok Masuk")
         daftar_bahan = df_stok["Nama Barang"].tolist()
         with st.form("form_tambah_bahan"):
@@ -811,6 +734,109 @@ with tab_stok:
                     f"Stok {bahan_dipilih} bertambah +{int(jumlah_masuk)} g menjadi {int(round(stok_baru))} g."
                 )
             st.rerun()
+
+        st.markdown("<div style='height: 0.75rem;'></div>", unsafe_allow_html=True)
+        with st.expander("➕ Tambah Bahan Baku Baru", expanded=False):
+            with st.form("form_bahan_baru", clear_on_submit=True):
+                nama_bahan_baru = st.text_input(
+                    "Nama Barang", placeholder="Contoh: Air"
+                )
+                b1, b2 = st.columns(2)
+                with b1:
+                    stok_awal_baru = st.number_input(
+                        "Stok (g)", min_value=0, value=0, step=1000, format="%d"
+                    )
+                with b2:
+                    stok_min_baru = st.number_input(
+                        "Min (g)",
+                        min_value=0,
+                        value=1000,
+                        step=1000,
+                        format="%d",
+                    )
+                r1, r2, r3 = st.columns(3)
+                with r1:
+                    orig_baru = st.number_input(
+                        "Orig (g)", min_value=0, value=0, step=1, format="%d"
+                    )
+                with r2:
+                    coklat_baru = st.number_input(
+                        "Coklat (g)", min_value=0, value=0, step=1, format="%d"
+                    )
+                with r3:
+                    cranb_baru = st.number_input(
+                        "Cranb (g)", min_value=0, value=0, step=1, format="%d"
+                    )
+                submit_bahan_baru = st.form_submit_button(
+                    "Simpan Bahan Baku", type="primary", width="stretch"
+                )
+
+            if submit_bahan_baru:
+                nama_bersih = nama_bahan_baru.strip()
+                if not nama_bersih:
+                    st.error("Nama Barang tidak boleh kosong.")
+                elif nama_bersih.lower() in [
+                    str(x).strip().lower()
+                    for x in df_stok["Nama Barang"].tolist()
+                ]:
+                    st.error(f"Bahan '{nama_bersih}' sudah ada di tabel.")
+                else:
+                    sh = get_spreadsheet()
+                    ws_stok = sh.worksheet("Stok Bahan Baku")
+                    raw_stok = ws_stok.get_all_values()
+                    header_idx = next(
+                        i
+                        for i, r in enumerate(raw_stok)
+                        if "Nama Barang" in [c.strip() for c in r]
+                    )
+                    headers = [h.strip() for h in raw_stok[header_idx]]
+                    while headers and headers[-1] == "":
+                        headers.pop()
+
+                    row_to_append = [""] * len(headers)
+                    for idx_h, h_name in enumerate(headers):
+                        h_low = h_name.lower()
+                        if h_name == "Nama Barang":
+                            row_to_append[idx_h] = nama_bersih
+                        elif h_name == "Stok Awal":
+                            row_to_append[idx_h] = int(stok_awal_baru)
+                        elif h_name == "Stok Min":
+                            row_to_append[idx_h] = int(stok_min_baru)
+                        elif (
+                            h_low.startswith("kebutuhan per 1 resep")
+                            and "orig" in h_low
+                        ):
+                            row_to_append[idx_h] = int(orig_baru)
+                        elif h_low.startswith("kebutuhan per 1 resep") and (
+                            "coklat" in h_low or "cokelat" in h_low
+                        ):
+                            row_to_append[idx_h] = int(coklat_baru)
+                        elif (
+                            h_low.startswith("kebutuhan per 1 resep")
+                            and "cranb" in h_low
+                        ):
+                            row_to_append[idx_h] = int(cranb_baru)
+
+                    ws_stok.append_row(row_to_append)
+
+                    status_baru = (
+                        "Menipis"
+                        if int(stok_awal_baru) <= int(stok_min_baru)
+                        else "Aman"
+                    )
+                    pesan_tg = (
+                        f"🆕 Bahan Baku Baru Ditambahkan\n"
+                        f"Bahan: {nama_bersih}\n"
+                        f"Stok: {int(stok_awal_baru)} g | Min: {int(stok_min_baru)} g ({status_baru})\n"
+                        f"Resep (g) -> Orig: {int(orig_baru)} | Coklat: {int(coklat_baru)} | Cranb: {int(cranb_baru)}"
+                    )
+                    kirim_notifikasi_telegram(pesan_tg)
+
+                    st.cache_data.clear()
+                    st.success(
+                        f"Bahan baku '{nama_bersih}' berhasil ditambahkan dengan status {status_baru}."
+                    )
+                    st.rerun()
 
 with tab_grafik:
     st.subheader("Visualisasi Tren Stok & Produksi")
