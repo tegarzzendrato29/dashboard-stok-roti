@@ -131,12 +131,6 @@ st.markdown(
             padding: 0.2rem;
         }
 
-        div[data-testid="stDataFrame"] th {
-            white-space: pre-line !important;
-            line-height: 1.25 !important;
-            text-align: center !important;
-        }
-
         div[data-testid="stAlert"] {
             background-color: #241913 !important;
             border: 1px solid #6B4423 !important;
@@ -286,20 +280,6 @@ def parse_number(series: pd.Series) -> pd.Series:
     return pd.to_numeric(cleaned, errors="coerce").fillna(0.0)
 
 
-def add_gram_suffix(col_name: str) -> str:
-    clean_col = col_name.strip()
-    if clean_col in {"Nama Barang", "Bahan", "Status", "Status Stok"}:
-        return clean_col
-    if clean_col.endswith("(g)") or clean_col.endswith("(gram)"):
-        return clean_col
-    return f"{clean_col} (g)"
-
-
-def format_table_gram(df: pd.DataFrame) -> pd.DataFrame:
-    renamed = {col: add_gram_suffix(col) for col in df.columns}
-    return df.rename(columns=renamed)
-
-
 def highlight_status_rows(df: pd.DataFrame, status_col: str):
     def style_row(row: pd.Series):
         val = str(row.get(status_col, "")).strip().lower()
@@ -368,6 +348,20 @@ def load_all_data():
     df_masuk = pd.DataFrame(ws_masuk.get_all_records())
 
     return df_stok, df_prod, df_masuk
+
+
+def find_recipe_column(df: pd.DataFrame, varian: str) -> str:
+    kandidat = [
+        f"Kebutuhan Per 1 Resep {varian}",
+        f"Kebutuhan Per 1 Resep {'Coklat' if varian == 'Cokelat' else varian}",
+    ]
+    for k in kandidat:
+        if k in df.columns:
+            return k
+    for col in df.columns:
+        if col.strip().startswith("Kebutuhan Per 1 Resep") and varian.lower() in col.lower():
+            return col
+    return kandidat[0]
 
 
 if "varian_terpilih" not in st.session_state:
@@ -441,7 +435,7 @@ tab_resep, tab_stok, tab_grafik, tab_riwayat = st.tabs([
 ])
 
 with tab_resep:
-    col_kiri, col_kanan = st.columns([1.05, 1.35])
+    col_kiri, col_kanan = st.columns([1.0, 1.5])
 
     with col_kiri:
         st.subheader("Buat Resep")
@@ -479,14 +473,7 @@ with tab_resep:
                 st.rerun()
 
         varian = st.session_state.varian_terpilih
-        kandidat_kolom = [
-            f"Kebutuhan Per 1 Resep {varian}",
-            f"Kebutuhan Per 1 Resep {'Coklat' if varian == 'Cokelat' else varian}",
-        ]
-        kolom_resep = next(
-            (k for k in kandidat_kolom if k in df_stok.columns),
-            kandidat_kolom[0],
-        )
+        kolom_resep = find_recipe_column(df_stok, varian)
 
         st.info(f"**Varian Dipilih:** {varian}  •  `{kolom_resep}`")
 
@@ -502,6 +489,7 @@ with tab_resep:
 
         df_stok[kolom_resep] = parse_number(df_stok[kolom_resep])
         df_stok["Stok Awal"] = parse_number(df_stok["Stok Awal"])
+        df_stok["Stok Min"] = parse_number(df_stok["Stok Min"])
 
         cek_df = df_stok[
             ["Nama Barang", "Stok Awal", "Stok Min", kolom_resep]
@@ -571,7 +559,7 @@ with tab_resep:
                 ]["Nama Barang"].tolist()
 
                 daftar_pakai = "\n".join(
-                    f"- {row['Nama Barang']}: -{row['Kebutuhan Total']} g (sisa {row['Sisa Stok']} g)"
+                    f"- {row['Nama Barang']}: -{int(round(row['Kebutuhan Total']))} g (sisa {int(round(row['Sisa Stok']))} g)"
                     for _, row in cek_df.iterrows()
                 )
                 teks_kritis = (
@@ -601,19 +589,25 @@ with tab_resep:
 
     with col_kanan:
         st.subheader("Daftar Kebutuhan & Sisa Stok")
-        cek_df_gram = format_table_gram(cek_df)
+        cek_ringkas = pd.DataFrame({
+            "Nama Barang": cek_df["Nama Barang"],
+            "Stok (g)": cek_df["Stok Awal"].round(0).astype(int),
+            "Min (g)": cek_df["Stok Min"].round(0).astype(int),
+            "Pakai (g)": cek_df[kolom_resep].round(0).astype(int),
+            "Total (g)": cek_df["Kebutuhan Total"].round(0).astype(int),
+            "Sisa (g)": cek_df["Sisa Stok"].round(0).astype(int),
+            "Status": cek_df["Status"],
+        })
         st.dataframe(
-            highlight_status_rows(cek_df_gram, "Status"),
+            highlight_status_rows(cek_ringkas, "Status"),
             width="stretch",
             hide_index=True,
         )
 
 with tab_stok:
-    col_tabel, col_tambah = st.columns([2.5, 1.0])
+    col_tabel, col_tambah = st.columns([2.35, 1.0])
 
     with col_tabel:
-        st.subheader("Data Stok Bahan Baku")
-
         df_tampil = df_stok.copy()
         df_tampil["Status"] = df_tampil.apply(
             lambda r: "Menipis" if r["Stok Awal"] <= r["Stok Min"] else "Aman",
@@ -628,59 +622,122 @@ with tab_stok:
         if filter_status != "Semua Bahan":
             df_tampil = df_tampil[df_tampil["Status"] == filter_status]
 
-        kolom_ringkas = [
-            "Nama Barang",
-            "Stok Awal",
-            "Stok Min",
-            "Kebutuhan Per 1 Resep Original",
-            "Kebutuhan Per 1 Resep Coklat",
-            "Kebutuhan Per 1 Resep Cokelat",
-            "Kebutuhan Per 1 Resep Cranberry",
-            "Status",
-        ]
-        kolom_ada = []
-        for k in kolom_ringkas:
-            if k in df_tampil.columns and k not in kolom_ada:
-                kolom_ada.append(k)
+        col_orig = find_recipe_column(df_tampil, "Original")
+        col_coklat = find_recipe_column(df_tampil, "Cokelat")
+        col_cranb = find_recipe_column(df_tampil, "Cranberry")
 
-        df_ringkas = df_tampil[kolom_ada].copy()
-        for c in df_ringkas.columns:
-            if c not in {"Nama Barang", "Status"}:
-                df_ringkas[c] = parse_number(df_ringkas[c]).round(0).astype(int)
+        def get_int_col(df_src: pd.DataFrame, col_name: str) -> pd.Series:
+            if col_name in df_src.columns:
+                return parse_number(df_src[col_name]).round(0).astype(int)
+            return pd.Series([0] * len(df_src), index=df_src.index, dtype=int)
 
-        nama_kolom_pendek = {
-            "Nama Barang": "Nama Barang",
-            "Stok Awal": "Stok\n(g)",
-            "Stok Min": "Min\n(g)",
-            "Kebutuhan Per 1 Resep Original": "1 Resep\nOrig (g)",
-            "Kebutuhan Per 1 Resep Coklat": "1 Resep\nCoklat (g)",
-            "Kebutuhan Per 1 Resep Cokelat": "1 Resep\nCokelat (g)",
-            "Kebutuhan Per 1 Resep Cranberry": "1 Resep\nCranberry (g)",
-            "Status": "Status",
-        }
-        df_ringkas_tampil = df_ringkas.rename(
-            columns={c: nama_kolom_pendek.get(c, c) for c in df_ringkas.columns}
-        )
-
-        col_cfg = {}
-        for c in df_ringkas_tampil.columns:
-            if c == "Nama Barang":
-                col_cfg[c] = st.column_config.TextColumn(c, width="medium")
-            elif c == "Status":
-                col_cfg[c] = st.column_config.TextColumn(c, width="small")
-            else:
-                col_cfg[c] = st.column_config.NumberColumn(
-                    c, format="%d", width="small"
-                )
+        df_ringkas_tampil = pd.DataFrame({
+            "Nama Barang": df_tampil["Nama Barang"],
+            "Stok (g)": get_int_col(df_tampil, "Stok Awal"),
+            "Min (g)": get_int_col(df_tampil, "Stok Min"),
+            "Orig (g)": get_int_col(df_tampil, col_orig),
+            "Coklat (g)": get_int_col(df_tampil, col_coklat),
+            "Cranb (g)": get_int_col(df_tampil, col_cranb),
+            "Status": df_tampil["Status"],
+        })
 
         st.dataframe(
             highlight_status_rows(df_ringkas_tampil, "Status"),
-            column_config=col_cfg,
             width="stretch",
             hide_index=True,
         )
 
     with col_tambah:
+        st.subheader("Tambah Bahan Baku Baru")
+        with st.form("form_bahan_baru", clear_on_submit=True):
+            nama_bahan_baru = st.text_input("Nama Barang", placeholder="Contoh: Air")
+            b1, b2 = st.columns(2)
+            with b1:
+                stok_awal_baru = st.number_input(
+                    "Stok (g)", min_value=0, value=0, step=1000, format="%d"
+                )
+            with b2:
+                stok_min_baru = st.number_input(
+                    "Min (g)", min_value=0, value=1000, step=1000, format="%d"
+                )
+            r1, r2, r3 = st.columns(3)
+            with r1:
+                orig_baru = st.number_input(
+                    "Orig (g)", min_value=0, value=0, step=1, format="%d"
+                )
+            with r2:
+                coklat_baru = st.number_input(
+                    "Coklat (g)", min_value=0, value=0, step=1, format="%d"
+                )
+            with r3:
+                cranb_baru = st.number_input(
+                    "Cranb (g)", min_value=0, value=0, step=1, format="%d"
+                )
+            submit_bahan_baru = st.form_submit_button(
+                "Simpan Bahan Baku", type="primary", width="stretch"
+            )
+
+        if submit_bahan_baru:
+            nama_bersih = nama_bahan_baru.strip()
+            if not nama_bersih:
+                st.error("Nama Barang tidak boleh kosong.")
+            elif nama_bersih.lower() in [
+                str(x).strip().lower() for x in df_stok["Nama Barang"].tolist()
+            ]:
+                st.error(f"Bahan '{nama_bersih}' sudah ada di tabel.")
+            else:
+                sh = get_spreadsheet()
+                ws_stok = sh.worksheet("Stok Bahan Baku")
+                raw_stok = ws_stok.get_all_values()
+                header_idx = next(
+                    i
+                    for i, r in enumerate(raw_stok)
+                    if "Nama Barang" in [c.strip() for c in r]
+                )
+                headers = [h.strip() for h in raw_stok[header_idx]]
+                while headers and headers[-1] == "":
+                    headers.pop()
+
+                row_to_append = [""] * len(headers)
+                for idx_h, h_name in enumerate(headers):
+                    h_low = h_name.lower()
+                    if h_name == "Nama Barang":
+                        row_to_append[idx_h] = nama_bersih
+                    elif h_name == "Stok Awal":
+                        row_to_append[idx_h] = int(stok_awal_baru)
+                    elif h_name == "Stok Min":
+                        row_to_append[idx_h] = int(stok_min_baru)
+                    elif h_low.startswith("kebutuhan per 1 resep") and "orig" in h_low:
+                        row_to_append[idx_h] = int(orig_baru)
+                    elif h_low.startswith("kebutuhan per 1 resep") and (
+                        "coklat" in h_low or "cokelat" in h_low
+                    ):
+                        row_to_append[idx_h] = int(coklat_baru)
+                    elif h_low.startswith("kebutuhan per 1 resep") and "cranb" in h_low:
+                        row_to_append[idx_h] = int(cranb_baru)
+
+                ws_stok.append_row(row_to_append)
+
+                status_baru = (
+                    "Menipis"
+                    if int(stok_awal_baru) <= int(stok_min_baru)
+                    else "Aman"
+                )
+                pesan_tg = (
+                    f"🆕 Bahan Baku Baru Ditambahkan\n"
+                    f"Bahan: {nama_bersih}\n"
+                    f"Stok: {int(stok_awal_baru)} g | Min: {int(stok_min_baru)} g ({status_baru})\n"
+                    f"Resep (g) -> Orig: {int(orig_baru)} | Coklat: {int(coklat_baru)} | Cranb: {int(cranb_baru)}"
+                )
+                kirim_notifikasi_telegram(pesan_tg)
+
+                st.cache_data.clear()
+                st.success(
+                    f"Bahan baku '{nama_bersih}' berhasil ditambahkan dengan status {status_baru}."
+                )
+                st.rerun()
+
+        st.markdown("<div style='height: 0.75rem;'></div>", unsafe_allow_html=True)
         st.subheader("Tambah Stok Masuk")
         daftar_bahan = df_stok["Nama Barang"].tolist()
         with st.form("form_tambah_bahan"):
@@ -732,14 +789,14 @@ with tab_stok:
                 waktu_sekarang,
                 bahan_dipilih,
                 int(jumlah_masuk),
-                stok_baru,
+                int(round(stok_baru)),
                 ket_masuk,
             ])
 
             pesan_tg = (
                 f"📦 Penambahan Stok Masuk ({waktu_sekarang})\n"
                 f"Bahan: {bahan_dipilih}\n"
-                f"Masuk: +{int(jumlah_masuk)} g | Stok Sekarang: {stok_baru} g\n"
+                f"Masuk: +{int(jumlah_masuk)} g | Stok Sekarang: {int(round(stok_baru))} g\n"
                 f"Keterangan: {ket_masuk}"
             )
             terkirim = kirim_notifikasi_telegram(pesan_tg)
@@ -747,11 +804,11 @@ with tab_stok:
             st.cache_data.clear()
             if terkirim:
                 st.success(
-                    f"Stok {bahan_dipilih} bertambah +{int(jumlah_masuk)} g menjadi {stok_baru} g dan notifikasi Telegram terkirim."
+                    f"Stok {bahan_dipilih} bertambah +{int(jumlah_masuk)} g menjadi {int(round(stok_baru))} g dan notifikasi Telegram terkirim."
                 )
             else:
                 st.success(
-                    f"Stok {bahan_dipilih} bertambah +{int(jumlah_masuk)} g menjadi {stok_baru} g."
+                    f"Stok {bahan_dipilih} bertambah +{int(jumlah_masuk)} g menjadi {int(round(stok_baru))} g."
                 )
             st.rerun()
 
@@ -856,8 +913,6 @@ with tab_grafik:
             st.plotly_chart(fig_prod, width="stretch")
 
 with tab_riwayat:
-    st.subheader("Riwayat Pembuatan Resep & Penambahan Stock")
-
     col_r1, col_r2 = st.columns(2)
     with col_r1:
         st.markdown("### Riwayat Pembuatan Resep")
