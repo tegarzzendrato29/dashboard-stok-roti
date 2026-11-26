@@ -33,9 +33,10 @@ if not st.session_state.terlogin:
                 font-family: 'Plus+Jakarta+Sans', sans-serif;
             }}
 
+            /* Latar belakang paling belakang tetap pemandangan */
             .stApp {{
                 background:
-                    linear-gradient(180deg, rgba(20, 15, 10, 0.25) 0%, rgba(20, 15, 10, 0.38) 100%),
+                    linear-gradient(180deg, rgba(20, 15, 10, 0.18) 0%, rgba(20, 15, 10, 0.32) 100%),
                     url("{LOGIN_BG_URL}") center center / cover no-repeat fixed !important;
                 min-height: 100vh;
             }}
@@ -46,13 +47,19 @@ if not st.session_state.terlogin:
                 background: transparent !important;
             }}
 
-            /* Kotak login putih solid & proporsional */
-            div[data-testid="stVerticalBlockBorderWrapper"] {{
+            /* Kotak login putih solid menyeluruh (tidak tembus pandang ke pemandangan) */
+            div[data-testid="stVerticalBlockBorderWrapper"],
+            div[data-testid="stVerticalBlockBorderWrapper"] > div,
+            div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stVerticalBlock"] {{
                 background-color: #FFFFFF !important;
+                background: #FFFFFF !important;
+            }}
+
+            div[data-testid="stVerticalBlockBorderWrapper"] {{
                 border: 1px solid #E2E8F0 !important;
                 border-radius: 12px !important;
                 padding: 1.65rem 1.8rem 1.75rem 1.8rem !important;
-                box-shadow: 0 20px 44px rgba(15, 23, 42, 0.32) !important;
+                box-shadow: 0 20px 44px rgba(15, 23, 42, 0.34) !important;
                 max-width: 390px !important;
                 margin: 0 auto !important;
             }}
@@ -92,7 +99,6 @@ if not st.session_state.terlogin:
                 flex-shrink: 0;
             }}
 
-            /* Input teks kontras di atas kotak putih */
             div[data-testid="stTextInput"] div[data-baseweb="input"] {{
                 background-color: #F8FAFC !important;
                 border: 1px solid #CBD5E1 !important;
@@ -120,7 +126,6 @@ if not st.session_state.terlogin:
                 opacity: 1 !important;
             }}
 
-            /* Tombol Masuk kontras */
             div[data-testid="stButton"].login-submit-btn button {{
                 background-color: #4E6B84 !important;
                 background-image: none !important;
