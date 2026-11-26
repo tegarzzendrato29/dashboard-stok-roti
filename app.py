@@ -7,7 +7,7 @@ import requests
 import streamlit as st
 
 st.set_page_config(
-    page_title="Dashboard Produksi & Stok Bahan Baku Roti",
+    page_title="Bakery Production & Raw Material Inventory System",
     page_icon="🍞",
     layout="wide",
 )
@@ -139,7 +139,7 @@ st.markdown(
 st.markdown(
     """
     <div class="sketch-hero">
-        <div class="sketch-hero-title">🍞 Dashboard Produksi &amp; Stok Bahan Baku Roti</div>
+        <div class="sketch-hero-title">🍞 Bakery Production &amp; Raw Material Inventory System</div>
         <div class="sketch-hero-sub">Pemantauan stok bahan baku, pencatatan resep (Original, Cokelat, Cranberry), dan notifikasi Telegram multi-penerima</div>
     </div>
     """,
