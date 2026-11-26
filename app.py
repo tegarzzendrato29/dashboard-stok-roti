@@ -311,28 +311,75 @@ def highlight_status_rows(df: pd.DataFrame, status_col: str):
     return df.style.apply(style_row, axis=1)
 
 
-@st.cache_data(ttl=30)
-def load_all_data():
-    sh = get_spreadsheet()
-
-    ws_stok = sh.worksheet("Stok Bahan Baku")
+def get_stok_sheet_layout(ws_stok):
     raw_stok = ws_stok.get_all_values()
-
-    header_idx = None
-    for i, r in enumerate(raw_stok):
-        cleaned_cells = [c.strip() for c in r]
-        if "Nama Barang" in cleaned_cells:
-            header_idx = i
-            break
-
+    header_idx = next(
+        (
+            i
+            for i, r in enumerate(raw_stok)
+            if "Nama Barang" in [c.strip() for c in r]
+        ),
+        None,
+    )
     if header_idx is None:
         raise ValueError(
             "Kolom 'Nama Barang' tidak ditemukan pada sheet 'Stok Bahan Baku'."
         )
 
-    raw_headers = [h.strip() for h in raw_stok[header_idx]]
-    while raw_headers and raw_headers[-1] == "":
-        raw_headers.pop()
+    headers = [h.strip() for h in raw_stok[header_idx]]
+    while headers and headers[-1] == "":
+        headers.pop()
+
+    return raw_stok, header_idx, headers
+
+
+def sync_dataframe_to_stok_sheet(ws_stok, raw_stok, header_idx, headers, df_new):
+    num_cols = len(headers)
+    data_rows = []
+    for _, row in df_new.iterrows():
+        out_row = []
+        for h in headers:
+            if h in df_new.columns:
+                val = row[h]
+                if h != "Nama Barang":
+                    num_val = parse_number(pd.Series([val])).iloc[0]
+                    if float(num_val).is_integer():
+                        out_row.append(int(round(num_val)))
+                    else:
+                        out_row.append(float(num_val))
+                else:
+                    out_row.append(str(val).strip())
+            else:
+                out_row.append("")
+        data_rows.append((out_row + [""] * num_cols)[:num_cols])
+
+    start_row = header_idx + 2
+    end_row = max(len(raw_stok), start_row + len(data_rows) + 2)
+    end_col_letter = gspread.utils.rowcol_to_a1(1, num_cols).rstrip("1234567890")
+
+    ws_stok.update(
+        range_name=f"A{header_idx + 1}:{end_col_letter}{header_idx + 1}",
+        values=[headers],
+    )
+    blank_rows = [[""] * num_cols for _ in range(max(0, end_row - start_row + 1))]
+    if blank_rows:
+        ws_stok.update(
+            range_name=f"A{start_row}:{end_col_letter}{start_row + len(blank_rows) - 1}",
+            values=blank_rows,
+        )
+    if data_rows:
+        ws_stok.update(
+            range_name=f"A{start_row}:{end_col_letter}{start_row + len(data_rows) - 1}",
+            values=data_rows,
+        )
+
+
+@st.cache_data(ttl=30)
+def load_all_data():
+    sh = get_spreadsheet()
+
+    ws_stok = sh.worksheet("Stok Bahan Baku")
+    raw_stok, header_idx, raw_headers = get_stok_sheet_layout(ws_stok)
 
     num_cols_data = len(raw_headers)
     rows_stok = []
@@ -363,6 +410,36 @@ def load_all_data():
     return df_stok, df_prod, df_masuk
 
 
+def get_recipe_columns(df: pd.DataFrame) -> list[str]:
+    return [
+        col.strip()
+        for col in df.columns
+        if col.strip().startswith("Kebutuhan Per 1 Resep")
+    ]
+
+
+def get_variant_label_from_col(col_name: str) -> str:
+    label = col_name.replace("Kebutuhan Per 1 Resep", "", 1).strip()
+    if label.lower() == "coklat":
+        return "Cokelat"
+    return label or col_name
+
+
+def get_available_variants(df: pd.DataFrame) -> list[str]:
+    base_order = ["Original", "Cokelat", "Cranberry"]
+    found = []
+    for col in get_recipe_columns(df):
+        v = get_variant_label_from_col(col)
+        if v not in found:
+            found.append(v)
+
+    ordered = [v for v in base_order if v in found]
+    for v in found:
+        if v not in ordered:
+            ordered.append(v)
+    return ordered or base_order
+
+
 def find_recipe_column(df: pd.DataFrame, varian: str) -> str:
     kandidat = [
         f"Kebutuhan Per 1 Resep {varian}",
@@ -380,15 +457,16 @@ def find_recipe_column(df: pd.DataFrame, varian: str) -> str:
     return kandidat[0]
 
 
-if "varian_terpilih" not in st.session_state:
-    st.session_state.varian_terpilih = "Original"
-
-
 try:
     df_stok, df_prod, df_masuk = load_all_data()
 except Exception as e:
     st.error(f"Gagal terhubung ke Google Sheets: {e}")
     st.stop()
+
+
+daftar_varian = get_available_variants(df_stok)
+if "varian_terpilih" not in st.session_state or st.session_state.varian_terpilih not in daftar_varian:
+    st.session_state.varian_terpilih = daftar_varian[0]
 
 
 total_item = len(df_stok)
@@ -456,37 +534,19 @@ with tab_resep:
     with col_kiri:
         st.subheader("Buat Resep")
 
-        v1, v2, v3 = st.columns(3)
-        with v1:
-            if st.button(
-                "Original",
-                type="primary"
-                if st.session_state.varian_terpilih == "Original"
-                else "secondary",
-                width="stretch",
-            ):
-                st.session_state.varian_terpilih = "Original"
-                st.rerun()
-        with v2:
-            if st.button(
-                "Cokelat",
-                type="primary"
-                if st.session_state.varian_terpilih == "Cokelat"
-                else "secondary",
-                width="stretch",
-            ):
-                st.session_state.varian_terpilih = "Cokelat"
-                st.rerun()
-        with v3:
-            if st.button(
-                "Cranberry",
-                type="primary"
-                if st.session_state.varian_terpilih == "Cranberry"
-                else "secondary",
-                width="stretch",
-            ):
-                st.session_state.varian_terpilih = "Cranberry"
-                st.rerun()
+        v_cols = st.columns(min(3, max(1, len(daftar_varian))))
+        for idx_v, nama_v in enumerate(daftar_varian):
+            with v_cols[idx_v % len(v_cols)]:
+                if st.button(
+                    nama_v,
+                    key=f"btn_varian_{nama_v}",
+                    type="primary"
+                    if st.session_state.varian_terpilih == nama_v
+                    else "secondary",
+                    width="stretch",
+                ):
+                    st.session_state.varian_terpilih = nama_v
+                    st.rerun()
 
         varian = st.session_state.varian_terpilih
         kolom_resep = find_recipe_column(df_stok, varian)
@@ -503,7 +563,11 @@ with tab_resep:
                 "Keterangan (opsional)", value="-", key="ket_prod"
             )
 
-        df_stok[kolom_resep] = parse_number(df_stok[kolom_resep])
+        if kolom_resep in df_stok.columns:
+            df_stok[kolom_resep] = parse_number(df_stok[kolom_resep])
+        else:
+            df_stok[kolom_resep] = 0.0
+
         df_stok["Stok Awal"] = parse_number(df_stok["Stok Awal"])
         df_stok["Stok Min"] = parse_number(df_stok["Stok Min"])
 
@@ -534,13 +598,7 @@ with tab_resep:
                 ws_stok = sh.worksheet("Stok Bahan Baku")
                 ws_prod = sh.worksheet("Riwayat_Produksi")
 
-                raw_stok = ws_stok.get_all_values()
-                header_idx = next(
-                    i
-                    for i, r in enumerate(raw_stok)
-                    if "Nama Barang" in [c.strip() for c in r]
-                )
-                headers = [h.strip() for h in raw_stok[header_idx]]
+                raw_stok, header_idx, headers = get_stok_sheet_layout(ws_stok)
                 idx_nama = headers.index("Nama Barang")
                 idx_stok_awal = headers.index("Stok Awal")
 
@@ -602,6 +660,119 @@ with tab_resep:
                         f"Produksi {varian} sebanyak {jumlah_resep} resep berhasil dicatat dan stok diperbarui."
                     )
                 st.rerun()
+
+        st.markdown("<div style='height: 0.65rem;'></div>", unsafe_allow_html=True)
+        with st.expander("➕ Tambah Resep", expanded=False):
+            with st.form("form_tambah_resep", clear_on_submit=True):
+                nama_resep_baru = st.text_input(
+                    "Nama Varian Resep", placeholder="Contoh: Matcha"
+                )
+                input_takaran_resep = {}
+                for nama_bh in df_stok["Nama Barang"].tolist():
+                    input_takaran_resep[nama_bh] = st.number_input(
+                        f"{nama_bh} (g / 1 resep)",
+                        min_value=0,
+                        value=0,
+                        step=1,
+                        format="%d",
+                        key=f"takaran_baru_{nama_bh}",
+                    )
+                submit_resep_baru = st.form_submit_button(
+                    "Simpan Resep Baru", type="primary", width="stretch"
+                )
+
+            if submit_resep_baru:
+                nama_v_bersih = nama_resep_baru.strip()
+                if not nama_v_bersih:
+                    st.error("Nama Varian Resep tidak boleh kosong.")
+                else:
+                    kolom_v_baru = f"Kebutuhan Per 1 Resep {nama_v_bersih}"
+                    existing_lower = [c.strip().lower() for c in df_stok.columns]
+                    if kolom_v_baru.strip().lower() in existing_lower:
+                        st.error(f"Resep '{nama_v_bersih}' sudah tersedia.")
+                    else:
+                        sh = get_spreadsheet()
+                        ws_stok = sh.worksheet("Stok Bahan Baku")
+                        raw_stok, header_idx, headers = get_stok_sheet_layout(
+                            ws_stok
+                        )
+                        new_headers = headers + [kolom_v_baru]
+                        df_resep_update = df_stok.copy()
+                        df_resep_update[kolom_v_baru] = df_resep_update[
+                            "Nama Barang"
+                        ].map(
+                            lambda b: int(input_takaran_resep.get(str(b).strip(), 0))
+                        )
+
+                        sync_dataframe_to_stok_sheet(
+                            ws_stok, raw_stok, header_idx, new_headers, df_resep_update
+                        )
+
+                        pesan_tg = (
+                            f"📖 Resep Baru Ditambahkan\n"
+                            f"Varian: {nama_v_bersih}\n"
+                            f"Kolom: {kolom_v_baru}"
+                        )
+                        kirim_notifikasi_telegram(pesan_tg)
+
+                        st.session_state.varian_terpilih = nama_v_bersih
+                        st.cache_data.clear()
+                        st.success(
+                            f"Resep '{nama_v_bersih}' berhasil ditambahkan ke tabel tanpa mengubah data stok yang ada."
+                        )
+                        st.rerun()
+
+        st.markdown("<div style='height: 0.45rem;'></div>", unsafe_allow_html=True)
+        with st.expander("🗑️ Hapus Resep", expanded=False):
+            resep_cols_all = get_recipe_columns(df_stok)
+            opsi_hapus_resep = {
+                get_variant_label_from_col(c): c for c in resep_cols_all
+            }
+            if not opsi_hapus_resep:
+                st.info("Tidak ada kolom resep yang dapat dihapus.")
+            else:
+                varian_hapus = st.selectbox(
+                    "Pilih Varian Resep yang Akan Dihapus",
+                    options=list(opsi_hapus_resep.keys()),
+                    key="sb_hapus_resep",
+                )
+                konfirmasi_hapus_resep = st.checkbox(
+                    f"Saya yakin ingin menghapus resep '{varian_hapus}'",
+                    key="chk_hapus_resep",
+                )
+                if st.button(
+                    "Hapus Resep Terpilih",
+                    type="secondary",
+                    width="stretch",
+                    disabled=not konfirmasi_hapus_resep,
+                    key="btn_hapus_resep",
+                ):
+                    kol_target = opsi_hapus_resep[varian_hapus]
+                    sh = get_spreadsheet()
+                    ws_stok = sh.worksheet("Stok Bahan Baku")
+                    raw_stok, header_idx, headers = get_stok_sheet_layout(ws_stok)
+
+                    new_headers = [h for h in headers if h != kol_target]
+                    df_after_del = df_stok.drop(columns=[kol_target], errors="ignore")
+
+                    sync_dataframe_to_stok_sheet(
+                        ws_stok, raw_stok, header_idx, new_headers, df_after_del
+                    )
+
+                    if st.session_state.varian_terpilih == varian_hapus:
+                        sisa_varian = get_available_variants(df_after_del)
+                        st.session_state.varian_terpilih = (
+                            sisa_varian[0] if sisa_varian else "Original"
+                        )
+
+                    pesan_tg = f"🗑️ Resep Dihapus\nVarian: {varian_hapus}"
+                    kirim_notifikasi_telegram(pesan_tg)
+
+                    st.cache_data.clear()
+                    st.success(
+                        f"Resep '{varian_hapus}' berhasil dihapus dari tabel tanpa merusak data bahan baku."
+                    )
+                    st.rerun()
 
     with col_kanan:
         st.subheader("Daftar Kebutuhan & Sisa Stok")
@@ -685,13 +856,7 @@ with tab_stok:
             ws_stok = sh.worksheet("Stok Bahan Baku")
             ws_masuk = sh.worksheet("Riwayat_Stok_Masuk")
 
-            raw_stok = ws_stok.get_all_values()
-            header_idx = next(
-                i
-                for i, r in enumerate(raw_stok)
-                if "Nama Barang" in [c.strip() for c in r]
-            )
-            headers = [h.strip() for h in raw_stok[header_idx]]
+            raw_stok, header_idx, headers = get_stok_sheet_layout(ws_stok)
             idx_nama = headers.index("Nama Barang")
             idx_stok_awal = headers.index("Stok Awal")
 
@@ -786,15 +951,9 @@ with tab_stok:
                 else:
                     sh = get_spreadsheet()
                     ws_stok = sh.worksheet("Stok Bahan Baku")
-                    raw_stok = ws_stok.get_all_values()
-                    header_idx = next(
-                        i
-                        for i, r in enumerate(raw_stok)
-                        if "Nama Barang" in [c.strip() for c in r]
+                    raw_stok, header_idx, headers = get_stok_sheet_layout(
+                        ws_stok
                     )
-                    headers = [h.strip() for h in raw_stok[header_idx]]
-                    while headers and headers[-1] == "":
-                        headers.pop()
 
                     row_to_append = [""] * len(headers)
                     for idx_h, h_name in enumerate(headers):
@@ -841,6 +1000,49 @@ with tab_stok:
                     )
                     st.rerun()
 
+        st.markdown("<div style='height: 0.45rem;'></div>", unsafe_allow_html=True)
+        with st.expander("🗑️ Hapus Bahan Baku", expanded=False):
+            if not daftar_bahan:
+                st.info("Tidak ada bahan baku yang dapat dihapus.")
+            else:
+                bahan_hapus = st.selectbox(
+                    "Pilih Bahan Baku yang Akan Dihapus",
+                    options=daftar_bahan,
+                    key="sb_hapus_bahan",
+                )
+                konfirmasi_hapus_bahan = st.checkbox(
+                    f"Saya yakin ingin menghapus bahan '{bahan_hapus}'",
+                    key="chk_hapus_bahan",
+                )
+                if st.button(
+                    "Hapus Bahan Terpilih",
+                    type="secondary",
+                    width="stretch",
+                    disabled=not konfirmasi_hapus_bahan,
+                    key="btn_hapus_bahan",
+                ):
+                    sh = get_spreadsheet()
+                    ws_stok = sh.worksheet("Stok Bahan Baku")
+                    raw_stok, header_idx, headers = get_stok_sheet_layout(ws_stok)
+
+                    df_bahan_sisa = df_stok[
+                        df_stok["Nama Barang"].astype(str).str.strip()
+                        != str(bahan_hapus).strip()
+                    ].copy()
+
+                    sync_dataframe_to_stok_sheet(
+                        ws_stok, raw_stok, header_idx, headers, df_bahan_sisa
+                    )
+
+                    pesan_tg = f"🗑️ Bahan Baku Dihapus\nBahan: {bahan_hapus}"
+                    kirim_notifikasi_telegram(pesan_tg)
+
+                    st.cache_data.clear()
+                    st.success(
+                        f"Bahan baku '{bahan_hapus}' berhasil dihapus tanpa merusak struktur tabel."
+                    )
+                    st.rerun()
+
 with tab_grafik:
     t_col1, t_col2 = st.columns([1.0, 1.0])
     with t_col1:
@@ -871,9 +1073,10 @@ with tab_grafik:
                     df_grafik_stok["Nama Barang"].isin(bahan_filter)
                 ]
         with f_col2:
+            opsi_varian_grafik = ["Semua"] + daftar_varian
             varian_dipilih_grafik = st.selectbox(
                 "Filter Varian Produksi",
-                options=["Semua", "Original", "Cokelat", "Cranberry"],
+                options=opsi_varian_grafik,
                 key="sb_varian_grafik",
             )
             if (
