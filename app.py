@@ -87,24 +87,36 @@ if not st.session_state.terlogin:
                 background: transparent !important;
             }}
 
-            /* Logo Universitas Gunadarma di pojok kiri atas laman login */
+            /* Logo Universitas Gunadarma di pojok kiri atas tanpa kotak/background & lebih besar */
             .login-top-left-logo {{
                 position: fixed;
-                top: 18px;
-                left: 22px;
+                top: 16px;
+                left: 20px;
                 z-index: 999;
-                background: rgba(255, 255, 255, 0.94);
-                border: 1px solid #e2e8f0;
-                border-radius: 10px;
-                padding: 8px 12px;
-                box-shadow: 0 8px 24px rgba(15, 23, 42, 0.22);
+                background: transparent !important;
+                border: none !important;
+                border-radius: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
                 pointer-events: none;
             }}
 
             .login-top-left-logo img {{
-                height: 46px;
+                height: 78px;
                 width: auto;
                 display: block;
+                background: transparent !important;
+                filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.78)) drop-shadow(0 4px 12px rgba(15, 23, 42, 0.35));
+            }}
+
+            @media (max-width: 768px) {{
+                .login-top-left-logo {{
+                    top: 12px;
+                    left: 14px;
+                }}
+                .login-top-left-logo img {{
+                    height: 56px;
+                }}
             }}
 
             /* Kotak login putih solid menyeluruh */
