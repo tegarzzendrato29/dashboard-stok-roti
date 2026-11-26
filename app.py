@@ -3,6 +3,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
 import plotly.express as px
+import requests
 import streamlit as st
 
 st.set_page_config(
@@ -11,6 +12,26 @@ st.set_page_config(
 )
 
 st.title("Dashboard Produksi & Stok Bahan Baku Roti")
+
+
+def kirim_notifikasi_telegram(pesan: str) -> bool:
+    if "telegram" not in st.secrets:
+        return False
+    token = str(st.secrets["telegram"].get("bot_token", "")).strip()
+    chat_id = str(st.secrets["telegram"].get("chat_id", "")).strip()
+    if not token or not chat_id:
+        return False
+
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    try:
+        resp = requests.post(
+            url,
+            json={"chat_id": chat_id, "text": pesan},
+            timeout=10,
+        )
+        return resp.ok
+    except Exception:
+        return False
 
 
 @st.cache_resource
@@ -247,10 +268,44 @@ with tab_resep:
                 [waktu_sekarang, varian, int(jumlah_resep), ket_prod]
             )
 
-            st.cache_data.clear()
-            st.success(
-                f"Produksi {varian} sebanyak {jumlah_resep} resep berhasil dicatat dan stok diperbarui."
+            df_update = df_stok.copy()
+            df_update["Stok Awal"] = df_update.apply(
+                lambda r: float(sisa_map[r["Nama Barang"]])
+                if r["Nama Barang"] in sisa_map
+                else float(r["Stok Awal"]),
+                axis=1,
             )
+            kritis = df_update[df_update["Stok Awal"] <= df_update["Stok Min"]][
+                "Nama Barang"
+            ].tolist()
+
+            daftar_pakai = "\n".join(
+                f"- {row['Nama Barang']}: -{row['Kebutuhan Total']} (sisa {row['Sisa Stok']})"
+                for _, row in cek_df.iterrows()
+            )
+            teks_kritis = (
+                "\n⚠️ Stok Menipis/Kritis: " + ", ".join(kritis)
+                if kritis
+                else "\n✅ Tidak ada stok kritis."
+            )
+            pesan_tg = (
+                f"🍞 Update Produksi Roti ({waktu_sekarang})\n"
+                f"Varian: {varian} | Jumlah: {int(jumlah_resep)} resep\n"
+                f"Keterangan: {ket_prod}\n"
+                f"Pemakaian:\n{daftar_pakai}"
+                f"{teks_kritis}"
+            )
+            terkirim = kirim_notifikasi_telegram(pesan_tg)
+
+            st.cache_data.clear()
+            if terkirim:
+                st.success(
+                    f"Produksi {varian} sebanyak {jumlah_resep} resep tercatat, stok diperbarui, dan notifikasi Telegram terkirim ke owner."
+                )
+            else:
+                st.success(
+                    f"Produksi {varian} sebanyak {jumlah_resep} resep berhasil dicatat dan stok diperbarui."
+                )
             st.rerun()
 
 with tab_stok:
@@ -329,10 +384,23 @@ with tab_stok:
                 ket_masuk,
             ])
 
-            st.cache_data.clear()
-            st.success(
-                f"Stok {bahan_dipilih} bertambah +{jumlah_masuk} menjadi {stok_baru}."
+            pesan_tg = (
+                f"📦 Penambahan Stok Masuk ({waktu_sekarang})\n"
+                f"Bahan: {bahan_dipilih}\n"
+                f"Masuk: +{float(jumlah_masuk)} | Stok Sekarang: {stok_baru}\n"
+                f"Keterangan: {ket_masuk}"
             )
+            terkirim = kirim_notifikasi_telegram(pesan_tg)
+
+            st.cache_data.clear()
+            if terkirim:
+                st.success(
+                    f"Stok {bahan_dipilih} bertambah +{jumlah_masuk} menjadi {stok_baru} dan notifikasi Telegram terkirim."
+                )
+            else:
+                st.success(
+                    f"Stok {bahan_dipilih} bertambah +{jumlah_masuk} menjadi {stok_baru}."
+                )
             st.rerun()
 
 with tab_grafik:
