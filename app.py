@@ -1,4 +1,5 @@
 from datetime import datetime
+import hmac
 import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
@@ -54,6 +55,28 @@ st.markdown(
             font-weight: 700;
             color: #2C180B !important;
             margin-top: 0.25rem;
+        }
+
+        .login-card-header {
+            background: linear-gradient(180deg, #FBBF24 0%, #F59E0B 100%);
+            color: #1A110B !important;
+            padding: 1rem 1.25rem;
+            border-radius: 12px 12px 0 0;
+            text-align: center;
+        }
+
+        .login-card-title {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #1A110B !important;
+            margin: 0;
+        }
+
+        .login-card-sub {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #2C180B !important;
+            margin-top: 0.2rem;
         }
 
         .metric-box {
@@ -223,15 +246,117 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown(
-    """
-    <div class="sketch-hero">
-        <div class="sketch-hero-title">🍞 Bakery Production &amp; Raw Material Inventory System</div>
-        <div class="sketch-hero-sub">Pemantauan stok bahan baku, pencatatan resep (Original, Cokelat, Cranberry), dan notifikasi Telegram multi-penerima</div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+
+def validasi_kredensial(nama_input: str, password_input: str) -> tuple[bool, str]:
+    if "auth" not in st.secrets:
+        return (
+            False,
+            "Konfigurasi [auth] belum diatur di .streamlit/secrets.toml.",
+        )
+
+    auth_cfg = st.secrets["auth"]
+    nama_bersih = nama_input.strip()
+    pass_bersih = password_input
+
+    if not nama_bersih or not pass_bersih:
+        return False, "Nama dan password wajib diisi."
+
+    kandidat_akun = []
+
+    if "users" in auth_cfg and isinstance(auth_cfg["users"], (list, tuple)):
+        for item in auth_cfg["users"]:
+            if isinstance(item, dict):
+                u = str(item.get("username", "")).strip()
+                p = str(item.get("password", ""))
+                if u and p:
+                    kandidat_akun.append((u, p))
+
+    single_u = str(auth_cfg.get("username", "")).strip()
+    single_p = str(auth_cfg.get("password", ""))
+    if single_u and single_p:
+        kandidat_akun.append((single_u, single_p))
+
+    if not kandidat_akun:
+        return (
+            False,
+            "Username atau password belum terisi pada bagian [auth] di secrets.toml.",
+        )
+
+    for u_benar, p_benar in kandidat_akun:
+        cocok_nama = hmac.compare_digest(
+            nama_bersih.lower().encode("utf-8"),
+            u_benar.lower().encode("utf-8"),
+        )
+        cocok_pass = hmac.compare_digest(
+            pass_bersih.encode("utf-8"),
+            p_benar.encode("utf-8"),
+        )
+        if cocok_nama and cocok_pass:
+            return True, u_benar
+
+    return False, "Nama atau password tidak sesuai."
+
+
+if "terlogin" not in st.session_state:
+    st.session_state.terlogin = False
+if "user_aktif" not in st.session_state:
+    st.session_state.user_aktif = ""
+
+
+if not st.session_state.terlogin:
+    _, col_login, _ = st.columns([1.0, 1.15, 1.0])
+    with col_login:
+        st.markdown("<div style='height: 1.5rem;'></div>", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div class="login-card-header">
+                <div class="login-card-title">🔐 Login Bakery Inventory</div>
+                <div class="login-card-sub">Bakery Production &amp; Raw Material Inventory System</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        with st.form("form_login_dashboard"):
+            nama_login = st.text_input("Nama", placeholder="Masukkan nama akun")
+            password_login = st.text_input(
+                "Password",
+                type="password",
+                placeholder="Masukkan password",
+            )
+            submit_login = st.form_submit_button(
+                "Masuk", type="primary", width="stretch"
+            )
+
+        if submit_login:
+            sukses, info_akun = validasi_kredensial(nama_login, password_login)
+            if sukses:
+                st.session_state.terlogin = True
+                st.session_state.user_aktif = info_akun
+                st.rerun()
+            else:
+                st.error(info_akun)
+
+    st.stop()
+
+
+top_bar_left, top_bar_right = st.columns([5.5, 1.0])
+with top_bar_left:
+    st.markdown(
+        """
+        <div class="sketch-hero">
+            <div class="sketch-hero-title">🍞 Bakery Production &amp; Raw Material Inventory System</div>
+            <div class="sketch-hero-sub">Pemantauan stok bahan baku, pencatatan resep (Original, Cokelat, Cranberry), dan notifikasi Telegram multi-penerima</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+with top_bar_right:
+    st.markdown("<div style='height: 0.4rem;'></div>", unsafe_allow_html=True)
+    st.caption(f"Akun: **{st.session_state.user_aktif}**")
+    if st.button("Keluar", key="btn_logout", type="secondary", width="stretch"):
+        st.session_state.terlogin = False
+        st.session_state.user_aktif = ""
+        st.rerun()
 
 
 def kirim_notifikasi_telegram(pesan: str) -> bool:
@@ -1348,7 +1473,8 @@ with tab_riwayat:
                     extra_v = [
                         str(v).strip()
                         for v in df_prod_filtered["Varian"].dropna().unique()
-                        if str(v).strip() and str(v).strip() not in varian_riwayat_opts
+                        if str(v).strip()
+                        and str(v).strip() not in varian_riwayat_opts
                     ]
                     varian_riwayat_opts.extend(extra_v)
                 pilih_varian_riwayat = st.selectbox(
@@ -1381,7 +1507,10 @@ with tab_riwayat:
                 ]
 
             if rentang_tgl is not None and not valid_dates.empty:
-                if isinstance(rentang_tgl, (list, tuple)) and len(rentang_tgl) == 2:
+                if (
+                    isinstance(rentang_tgl, (list, tuple))
+                    and len(rentang_tgl) == 2
+                ):
                     tgl_awal, tgl_akhir = rentang_tgl
                     mask_tgl = (
                         dt_parsed.dt.date.notna()
@@ -1389,7 +1518,10 @@ with tab_riwayat:
                         & (dt_parsed.dt.date <= tgl_akhir)
                     )
                     df_prod_filtered = df_prod_filtered[mask_tgl]
-                elif isinstance(rentang_tgl, (list, tuple)) and len(rentang_tgl) == 1:
+                elif (
+                    isinstance(rentang_tgl, (list, tuple))
+                    and len(rentang_tgl) == 1
+                ):
                     tgl_tunggal = rentang_tgl[0]
                     df_prod_filtered = df_prod_filtered[
                         dt_parsed.dt.date == tgl_tunggal
