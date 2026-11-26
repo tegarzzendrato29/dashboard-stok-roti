@@ -35,7 +35,7 @@ if not st.session_state.terlogin:
 
             .stApp {{
                 background:
-                    linear-gradient(180deg, rgba(24, 18, 12, 0.22) 0%, rgba(24, 18, 12, 0.36) 100%),
+                    linear-gradient(180deg, rgba(20, 15, 10, 0.25) 0%, rgba(20, 15, 10, 0.38) 100%),
                     url("{LOGIN_BG_URL}") center center / cover no-repeat fixed !important;
                 min-height: 100vh;
             }}
@@ -46,98 +46,96 @@ if not st.session_state.terlogin:
                 background: transparent !important;
             }}
 
+            /* Kotak login putih solid & proporsional */
             div[data-testid="stVerticalBlockBorderWrapper"] {{
-                background-color: #F7EFE3 !important;
-                border: none !important;
-                border-radius: 6px !important;
-                padding: 2.1rem 2.3rem 2.2rem 2.3rem !important;
-                box-shadow: 0 22px 48px rgba(15, 10, 6, 0.42) !important;
-                max-width: 410px !important;
+                background-color: #FFFFFF !important;
+                border: 1px solid #E2E8F0 !important;
+                border-radius: 12px !important;
+                padding: 1.65rem 1.8rem 1.75rem 1.8rem !important;
+                box-shadow: 0 20px 44px rgba(15, 23, 42, 0.32) !important;
+                max-width: 390px !important;
                 margin: 0 auto !important;
+            }}
+
+            div[data-testid="stVerticalBlockBorderWrapper"] p,
+            div[data-testid="stVerticalBlockBorderWrapper"] span,
+            div[data-testid="stVerticalBlockBorderWrapper"] label {{
+                color: #1A202C !important;
             }}
 
             .scenic-login-title {{
                 font-family: 'Playfair Display', Georgia, serif !important;
-                font-size: 2.15rem !important;
+                font-size: 1.85rem !important;
                 font-weight: 700 !important;
-                line-height: 1.08 !important;
+                line-height: 1.12 !important;
                 text-align: center !important;
-                color: #1F2429 !important;
-                margin: 0 0 1.65rem 0 !important;
-                letter-spacing: -0.01em;
+                color: #111827 !important;
+                margin: 0 0 1.35rem 0 !important;
             }}
 
             .scenic-field-label {{
                 display: flex;
                 align-items: center;
                 gap: 0.45rem;
-                font-size: 0.96rem !important;
-                font-weight: 500 !important;
-                color: #262B30 !important;
-                margin-bottom: 0.25rem;
+                font-size: 0.92rem !important;
+                font-weight: 600 !important;
+                color: #1F2937 !important;
+                margin-bottom: 0.3rem;
             }}
 
             .scenic-field-label svg {{
-                width: 17px;
-                height: 17px;
-                stroke: #4B525A;
+                width: 16px;
+                height: 16px;
+                stroke: #374151;
                 fill: none;
-                stroke-width: 1.7;
+                stroke-width: 1.9;
                 flex-shrink: 0;
+            }}
+
+            /* Input teks kontras di atas kotak putih */
+            div[data-testid="stTextInput"] div[data-baseweb="input"] {{
+                background-color: #F8FAFC !important;
+                border: 1px solid #CBD5E1 !important;
+                border-radius: 8px !important;
+                padding: 0.08rem 0.6rem !important;
+            }}
+
+            div[data-testid="stTextInput"] div[data-baseweb="input"]:focus-within {{
+                border-color: #4E6B84 !important;
+                box-shadow: 0 0 0 2px rgba(78, 107, 132, 0.18) !important;
             }}
 
             div[data-testid="stTextInput"] input {{
                 background-color: transparent !important;
-                color: #1F2429 !important;
+                color: #111827 !important;
                 border: none !important;
-                border-bottom: 1.4px solid #7C858E !important;
                 border-radius: 0 !important;
-                padding: 0.35rem 0.1rem !important;
-                font-size: 0.98rem !important;
+                padding: 0.4rem 0.1rem !important;
+                font-size: 0.94rem !important;
                 box-shadow: none !important;
             }}
 
-            div[data-testid="stTextInput"] input:focus {{
-                border-bottom: 1.8px solid #3F5973 !important;
-                box-shadow: none !important;
+            div[data-testid="stTextInput"] input::placeholder {{
+                color: #64748B !important;
+                opacity: 1 !important;
             }}
 
-            div[data-testid="stTextInput"] div[data-baseweb="input"] {{
-                background-color: transparent !important;
-                border: none !important;
-                box-shadow: none !important;
-            }}
-
-            div[data-testid="stTextInput"].pw-box-input div[data-baseweb="input"] {{
-                background-color: #EFE5D5 !important;
-                border: 1px solid #DFD2BE !important;
-                border-radius: 10px !important;
-                padding: 0.15rem 0.65rem !important;
-            }}
-
-            div[data-testid="stTextInput"].pw-box-input input {{
-                background-color: transparent !important;
-                border-bottom: none !important;
-                padding: 0.42rem 0.15rem !important;
-                color: #1F2429 !important;
-            }}
-
+            /* Tombol Masuk kontras */
             div[data-testid="stButton"].login-submit-btn button {{
-                background-color: #5C768D !important;
+                background-color: #4E6B84 !important;
                 background-image: none !important;
                 color: #FFFFFF !important;
                 border: none !important;
-                border-radius: 999px !important;
-                padding: 0.58rem 1.2rem !important;
-                font-size: 0.96rem !important;
-                font-weight: 600 !important;
-                letter-spacing: 0.01em;
-                box-shadow: 0 4px 12px rgba(42, 58, 72, 0.25) !important;
-                margin-top: 0.75rem !important;
+                border-radius: 8px !important;
+                padding: 0.55rem 1.1rem !important;
+                font-size: 0.94rem !important;
+                font-weight: 700 !important;
+                box-shadow: 0 4px 10px rgba(30, 41, 59, 0.2) !important;
+                margin-top: 0.65rem !important;
             }}
 
             div[data-testid="stButton"].login-submit-btn button:hover {{
-                background-color: #4C6479 !important;
+                background-color: #3D566C !important;
                 color: #FFFFFF !important;
             }}
 
@@ -145,13 +143,13 @@ if not st.session_state.terlogin:
             div[data-testid="stButton"].login-submit-btn button span,
             div[data-testid="stButton"].login-submit-btn button div {{
                 color: #FFFFFF !important;
-                font-weight: 600 !important;
+                font-weight: 700 !important;
             }}
 
             div[data-testid="stAlert"] {{
-                background-color: #FDECEC !important;
-                border: 1px solid #E5A9A9 !important;
-                color: #7A1C1C !important;
+                background-color: #FEF2F2 !important;
+                border: 1px solid #FCA5A5 !important;
+                color: #991B1B !important;
                 border-radius: 8px !important;
                 margin-top: 0.75rem !important;
             }}
@@ -159,16 +157,17 @@ if not st.session_state.terlogin:
             div[data-testid="stAlert"] p,
             div[data-testid="stAlert"] span,
             div[data-testid="stAlert"] div {{
-                color: #7A1C1C !important;
+                color: #991B1B !important;
+                font-weight: 600 !important;
             }}
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    _, center_col, _ = st.columns([1.05, 1.3, 1.05])
+    _, center_col, _ = st.columns([1.15, 1.2, 1.15])
     with center_col:
-        st.markdown("<div style='height: 3.2rem;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 3.5rem;'></div>", unsafe_allow_html=True)
         with st.container(border=True):
             st.markdown(
                 '<div class="scenic-login-title">Login Bakery<br>Inventory</div>',
@@ -191,48 +190,33 @@ if not st.session_state.terlogin:
             username_input = st.text_input(
                 "Username",
                 label_visibility="collapsed",
-                placeholder="",
+                placeholder="Masukkan username",
                 key="scenic_user_field",
             )
 
-            st.markdown("<div style='height: 0.65rem;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height: 0.6rem;'></div>", unsafe_allow_html=True)
 
-            # 2. Password
+            # 2. Password dengan logo kunci
             st.markdown(
                 """
                 <div class="scenic-field-label">
                     <svg viewBox="0 0 24 24">
-                        <circle cx="12" cy="8" r="4"></circle>
-                        <path d="M4 20c0-3.5 3.6-6 8-6s8 2.5 8 6"></path>
+                        <circle cx="7.5" cy="15.5" r="4.5"></circle>
+                        <path d="M10.7 12.3L21 2"></path>
+                        <path d="M17 6l3 3"></path>
+                        <path d="M14.5 8.5l2.5 2.5"></path>
                     </svg>
                     <span>Password</span>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-            st.markdown(
-                '<div class="pw-box-wrapper">', unsafe_allow_html=True
-            )
             password_input = st.text_input(
                 "Password",
                 type="password",
                 label_visibility="collapsed",
-                placeholder="",
+                placeholder="Masukkan password",
                 key="scenic_pw_field",
-            )
-            st.markdown("</div>", unsafe_allow_html=True)
-
-            st.markdown(
-                """
-                <script>
-                    const pwWrappers = window.parent.document.querySelectorAll('.pw-box-wrapper');
-                    pwWrappers.forEach(w => {
-                        const ti = w.querySelector('[data-testid="stTextInput"]');
-                        if (ti) ti.classList.add('pw-box-input');
-                    });
-                </script>
-                """,
-                unsafe_allow_html=True,
             )
 
             st.markdown(
