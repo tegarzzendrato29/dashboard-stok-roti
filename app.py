@@ -22,12 +22,6 @@ if "terlogin" not in st.session_state:
     st.session_state.terlogin = False
 if "user_aktif" not in st.session_state:
     st.session_state.user_aktif = ""
-if "tampil_password" not in st.session_state:
-    st.session_state.tampil_password = False
-if "login_username_val" not in st.session_state:
-    st.session_state.login_username_val = ""
-if "login_password_val" not in st.session_state:
-    st.session_state.login_password_val = ""
 
 if not st.session_state.terlogin:
     st.markdown(
@@ -128,21 +122,6 @@ if not st.session_state.terlogin:
                 color: #1F2429 !important;
             }}
 
-            div[data-testid="stButton"].eye-toggle-btn button {{
-                background-color: transparent !important;
-                border: none !important;
-                box-shadow: none !important;
-                color: #3D444C !important;
-                padding: 0.15rem 0.25rem !important;
-                min-height: 2rem !important;
-                font-size: 1.15rem !important;
-            }}
-
-            div[data-testid="stButton"].eye-toggle-btn button:hover {{
-                background-color: rgba(0, 0, 0, 0.05) !important;
-                color: #111418 !important;
-            }}
-
             div[data-testid="stButton"].login-submit-btn button {{
                 background-color: #5C768D !important;
                 background-image: none !important;
@@ -154,7 +133,7 @@ if not st.session_state.terlogin:
                 font-weight: 600 !important;
                 letter-spacing: 0.01em;
                 box-shadow: 0 4px 12px rgba(42, 58, 72, 0.25) !important;
-                margin-top: 0.65rem !important;
+                margin-top: 0.75rem !important;
             }}
 
             div[data-testid="stButton"].login-submit-btn button:hover {{
@@ -196,6 +175,7 @@ if not st.session_state.terlogin:
                 unsafe_allow_html=True,
             )
 
+            # 1. Username
             st.markdown(
                 """
                 <div class="scenic-field-label">
@@ -210,66 +190,36 @@ if not st.session_state.terlogin:
             )
             username_input = st.text_input(
                 "Username",
-                value=st.session_state.login_username_val,
                 label_visibility="collapsed",
                 placeholder="",
                 key="scenic_user_field",
             )
-            st.session_state.login_username_val = username_input
 
-            st.markdown("<div style='height: 0.55rem;'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height: 0.65rem;'></div>", unsafe_allow_html=True)
 
-            pw_label_col, pw_eye_col = st.columns(
-                [8.2, 1.8], vertical_alignment="center"
+            # 2. Password
+            st.markdown(
+                """
+                <div class="scenic-field-label">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="8" r="4"></circle>
+                        <path d="M4 20c0-3.5 3.6-6 8-6s8 2.5 8 6"></path>
+                    </svg>
+                    <span>Password</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
-            with pw_label_col:
-                st.markdown(
-                    """
-                    <div class="scenic-field-label" style="margin-bottom: 0;">
-                        <svg viewBox="0 0 24 24">
-                            <circle cx="12" cy="8" r="4"></circle>
-                            <path d="M4 20c0-3.5 3.6-6 8-6s8 2.5 8 6"></path>
-                        </svg>
-                        <span>Password</span>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            with pw_eye_col:
-                st.markdown(
-                    '<div class="eye-toggle-btn">', unsafe_allow_html=True
-                )
-                # Terlihat = mata terbuka (👁️), Tersembunyi = mata tertutup (🙈)
-                ikon_mata = "👁️" if st.session_state.tampil_password else "🙈"
-                label_bantu_mata = (
-                    "Password terlihat (klik untuk menyembunyikan)"
-                    if st.session_state.tampil_password
-                    else "Password tersembunyi (klik untuk menampilkan)"
-                )
-                if st.button(
-                    ikon_mata,
-                    key="btn_toggle_mata_password",
-                    help=label_bantu_mata,
-                    use_container_width=True,
-                ):
-                    st.session_state.tampil_password = (
-                        not st.session_state.tampil_password
-                    )
-                    st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
-
             st.markdown(
                 '<div class="pw-box-wrapper">', unsafe_allow_html=True
             )
             password_input = st.text_input(
                 "Password",
-                value=st.session_state.login_password_val,
-                type="default" if st.session_state.tampil_password else "password",
+                type="password",
                 label_visibility="collapsed",
                 placeholder="",
                 key="scenic_pw_field",
             )
-            st.session_state.login_password_val = password_input
             st.markdown("</div>", unsafe_allow_html=True)
 
             st.markdown(
@@ -341,8 +291,6 @@ if not st.session_state.terlogin:
                         if cocok:
                             st.session_state.terlogin = True
                             st.session_state.user_aktif = user_valid
-                            st.session_state.login_password_val = ""
-                            st.session_state.tampil_password = False
                             st.rerun()
                         else:
                             st.error("Username atau password tidak sesuai.")
