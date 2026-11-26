@@ -47,12 +47,34 @@ if not st.session_state.terlogin:
                 background: transparent !important;
             }}
 
-            /* Kotak login putih solid menyeluruh (tidak tembus pandang ke pemandangan) */
-            div[data-testid="stVerticalBlockBorderWrapper"],
-            div[data-testid="stVerticalBlockBorderWrapper"] > div,
-            div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stVerticalBlock"] {{
-                background-color: #FFFFFF !important;
-                background: #FFFFFF !important;
+           /* Mencegah teks di luar input memunculkan simbol ketik acak */
+            .stApp,
+            .stApp * {{
+                user-select: none;
+                -webkit-user-select: none;
+            }}
+
+            .stApp input,
+            .stApp textarea {{
+                user-select: text !important;
+                -webkit-user-select: text !important;
+            }}
+
+            /* Kotak login putih solid menyeluruh */
+            div[data-testid="stVerticalBlockBorderWrapper"]:has(.login-card-anchor),
+            div[data-testid="stVerticalBlockBorderWrapper"]:has(.login-card-anchor) > div,
+            div[data-testid="stVerticalBlockBorderWrapper"]:has(.login-card-anchor) [data-testid="stVerticalBlock"] {{
+                background-color: #ffffff !important;
+                background: #ffffff !important;
+            }}
+
+            div[data-testid="stVerticalBlockBorderWrapper"]:has(.login-card-anchor) {{
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 12px !important;
+                padding: 1.65rem 1.8rem 1.75rem 1.8rem !important;
+                box-shadow: 0 20px 44px rgba(15, 23, 42, 0.34) !important;
+                max-width: 390px !important;
+                margin: 0 auto !important;
             }}
 
             div[data-testid="stVerticalBlockBorderWrapper"] {{
@@ -174,6 +196,7 @@ if not st.session_state.terlogin:
     with center_col:
         st.markdown("<div style='height: 3.5rem;'></div>", unsafe_allow_html=True)
         with st.container(border=True):
+            st.markdown('<div class="login-card-anchor"></div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="scenic-login-title">Login Bakery<br>Inventory</div>',
                 unsafe_allow_html=True,
