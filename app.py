@@ -17,21 +17,45 @@ st.title("Dashboard Produksi & Stok Bahan Baku Roti")
 def kirim_notifikasi_telegram(pesan: str) -> bool:
     if "telegram" not in st.secrets:
         return False
-    token = str(st.secrets["telegram"].get("bot_token", "")).strip()
-    chat_id = str(st.secrets["telegram"].get("chat_id", "")).strip()
-    if not token or not chat_id:
+
+    tg_cfg = st.secrets["telegram"]
+    token = str(tg_cfg.get("bot_token", "")).strip()
+    if not token:
+        return False
+
+    raw_ids = tg_cfg.get("chat_ids", [])
+    if isinstance(raw_ids, (list, tuple)):
+        target_ids = [str(cid).strip() for cid in raw_ids if str(cid).strip()]
+    elif str(raw_ids).strip():
+        target_ids = [
+            x.strip() for x in str(raw_ids).split(",") if x.strip()
+        ]
+    else:
+        target_ids = []
+
+    single_id = str(tg_cfg.get("chat_id", "")).strip()
+    if single_id and single_id not in target_ids:
+        target_ids.insert(0, single_id)
+
+    if not target_ids:
         return False
 
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    try:
-        resp = requests.post(
-            url,
-            json={"chat_id": chat_id, "text": pesan},
-            timeout=10,
-        )
-        return resp.ok
-    except Exception:
-        return False
+    berhasil_minimal_satu = False
+
+    for cid in target_ids:
+        try:
+            resp = requests.post(
+                url,
+                json={"chat_id": cid, "text": pesan},
+                timeout=10,
+            )
+            if resp.ok:
+                berhasil_minimal_satu = True
+        except Exception:
+            continue
+
+    return berhasil_minimal_satu
 
 
 @st.cache_resource
@@ -300,7 +324,7 @@ with tab_resep:
             st.cache_data.clear()
             if terkirim:
                 st.success(
-                    f"Produksi {varian} sebanyak {jumlah_resep} resep tercatat, stok diperbarui, dan notifikasi Telegram terkirim ke owner."
+                    f"Produksi {varian} sebanyak {jumlah_resep} resep tercatat, stok diperbarui, dan notifikasi Telegram terkirim."
                 )
             else:
                 st.success(
