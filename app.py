@@ -13,6 +13,343 @@ st.set_page_config(
     layout="wide",
 )
 
+LOGIN_BG_URL = (
+    "https://images.unsplash.com/photo-1506744038136-46273834b3fb"
+    "?auto=format&fit=crop&w=1920&q=85"
+)
+
+if "terlogin" not in st.session_state:
+    st.session_state.terlogin = False
+if "user_aktif" not in st.session_state:
+    st.session_state.user_aktif = ""
+if "tampil_password" not in st.session_state:
+    st.session_state.tampil_password = False
+if "login_username_val" not in st.session_state:
+    st.session_state.login_username_val = ""
+if "login_password_val" not in st.session_state:
+    st.session_state.login_password_val = ""
+
+if not st.session_state.terlogin:
+    st.markdown(
+        f"""
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+            html, body, [class*="css"] {{
+                font-family: 'Plus+Jakarta+Sans', sans-serif;
+            }}
+
+            .stApp {{
+                background:
+                    linear-gradient(180deg, rgba(24, 18, 12, 0.22) 0%, rgba(24, 18, 12, 0.36) 100%),
+                    url("{LOGIN_BG_URL}") center center / cover no-repeat fixed !important;
+                min-height: 100vh;
+            }}
+
+            [data-testid="stHeader"],
+            [data-testid="stToolbar"],
+            [data-testid="stDecoration"] {{
+                background: transparent !important;
+            }}
+
+            div[data-testid="stVerticalBlockBorderWrapper"] {{
+                background-color: #F7EFE3 !important;
+                border: none !important;
+                border-radius: 6px !important;
+                padding: 2.1rem 2.3rem 2.2rem 2.3rem !important;
+                box-shadow: 0 22px 48px rgba(15, 10, 6, 0.42) !important;
+                max-width: 410px !important;
+                margin: 0 auto !important;
+            }}
+
+            .scenic-login-title {{
+                font-family: 'Playfair Display', Georgia, serif !important;
+                font-size: 2.15rem !important;
+                font-weight: 700 !important;
+                line-height: 1.08 !important;
+                text-align: center !important;
+                color: #1F2429 !important;
+                margin: 0 0 1.65rem 0 !important;
+                letter-spacing: -0.01em;
+            }}
+
+            .scenic-field-label {{
+                display: flex;
+                align-items: center;
+                gap: 0.45rem;
+                font-size: 0.96rem !important;
+                font-weight: 500 !important;
+                color: #262B30 !important;
+                margin-bottom: 0.25rem;
+            }}
+
+            .scenic-field-label svg {{
+                width: 17px;
+                height: 17px;
+                stroke: #4B525A;
+                fill: none;
+                stroke-width: 1.7;
+                flex-shrink: 0;
+            }}
+
+            div[data-testid="stTextInput"] input {{
+                background-color: transparent !important;
+                color: #1F2429 !important;
+                border: none !important;
+                border-bottom: 1.4px solid #7C858E !important;
+                border-radius: 0 !important;
+                padding: 0.35rem 0.1rem !important;
+                font-size: 0.98rem !important;
+                box-shadow: none !important;
+            }}
+
+            div[data-testid="stTextInput"] input:focus {{
+                border-bottom: 1.8px solid #3F5973 !important;
+                box-shadow: none !important;
+            }}
+
+            div[data-testid="stTextInput"] div[data-baseweb="input"] {{
+                background-color: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+            }}
+
+            div[data-testid="stTextInput"].pw-box-input div[data-baseweb="input"] {{
+                background-color: #EFE5D5 !important;
+                border: 1px solid #DFD2BE !important;
+                border-radius: 10px !important;
+                padding: 0.15rem 0.65rem !important;
+            }}
+
+            div[data-testid="stTextInput"].pw-box-input input {{
+                background-color: transparent !important;
+                border-bottom: none !important;
+                padding: 0.42rem 0.15rem !important;
+                color: #1F2429 !important;
+            }}
+
+            div[data-testid="stButton"].eye-toggle-btn button {{
+                background-color: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                color: #3D444C !important;
+                padding: 0.15rem 0.25rem !important;
+                min-height: 2rem !important;
+                font-size: 1.15rem !important;
+            }}
+
+            div[data-testid="stButton"].eye-toggle-btn button:hover {{
+                background-color: rgba(0, 0, 0, 0.05) !important;
+                color: #111418 !important;
+            }}
+
+            div[data-testid="stButton"].login-submit-btn button {{
+                background-color: #5C768D !important;
+                background-image: none !important;
+                color: #FFFFFF !important;
+                border: none !important;
+                border-radius: 999px !important;
+                padding: 0.58rem 1.2rem !important;
+                font-size: 0.96rem !important;
+                font-weight: 600 !important;
+                letter-spacing: 0.01em;
+                box-shadow: 0 4px 12px rgba(42, 58, 72, 0.25) !important;
+                margin-top: 0.65rem !important;
+            }}
+
+            div[data-testid="stButton"].login-submit-btn button:hover {{
+                background-color: #4C6479 !important;
+                color: #FFFFFF !important;
+            }}
+
+            div[data-testid="stButton"].login-submit-btn button p,
+            div[data-testid="stButton"].login-submit-btn button span,
+            div[data-testid="stButton"].login-submit-btn button div {{
+                color: #FFFFFF !important;
+                font-weight: 600 !important;
+            }}
+
+            div[data-testid="stAlert"] {{
+                background-color: #FDECEC !important;
+                border: 1px solid #E5A9A9 !important;
+                color: #7A1C1C !important;
+                border-radius: 8px !important;
+                margin-top: 0.75rem !important;
+            }}
+
+            div[data-testid="stAlert"] p,
+            div[data-testid="stAlert"] span,
+            div[data-testid="stAlert"] div {{
+                color: #7A1C1C !important;
+            }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    _, center_col, _ = st.columns([1.05, 1.3, 1.05])
+    with center_col:
+        st.markdown("<div style='height: 3.2rem;'></div>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown(
+                '<div class="scenic-login-title">Login Bakery<br>Inventory</div>',
+                unsafe_allow_html=True,
+            )
+
+            st.markdown(
+                """
+                <div class="scenic-field-label">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="8" r="4"></circle>
+                        <path d="M4 20c0-3.5 3.6-6 8-6s8 2.5 8 6"></path>
+                    </svg>
+                    <span>Username</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            username_input = st.text_input(
+                "Username",
+                value=st.session_state.login_username_val,
+                label_visibility="collapsed",
+                placeholder="",
+                key="scenic_user_field",
+            )
+            st.session_state.login_username_val = username_input
+
+            st.markdown("<div style='height: 0.55rem;'></div>", unsafe_allow_html=True)
+
+            pw_label_col, pw_eye_col = st.columns(
+                [8.2, 1.8], vertical_alignment="center"
+            )
+            with pw_label_col:
+                st.markdown(
+                    """
+                    <div class="scenic-field-label" style="margin-bottom: 0;">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="12" cy="8" r="4"></circle>
+                            <path d="M4 20c0-3.5 3.6-6 8-6s8 2.5 8 6"></path>
+                        </svg>
+                        <span>Password</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with pw_eye_col:
+                st.markdown(
+                    '<div class="eye-toggle-btn">', unsafe_allow_html=True
+                )
+                # Terlihat = mata terbuka (👁️), Tersembunyi = mata tertutup (🙈)
+                ikon_mata = "👁️" if st.session_state.tampil_password else "🙈"
+                label_bantu_mata = (
+                    "Password terlihat (klik untuk menyembunyikan)"
+                    if st.session_state.tampil_password
+                    else "Password tersembunyi (klik untuk menampilkan)"
+                )
+                if st.button(
+                    ikon_mata,
+                    key="btn_toggle_mata_password",
+                    help=label_bantu_mata,
+                    use_container_width=True,
+                ):
+                    st.session_state.tampil_password = (
+                        not st.session_state.tampil_password
+                    )
+                    st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
+
+            st.markdown(
+                '<div class="pw-box-wrapper">', unsafe_allow_html=True
+            )
+            password_input = st.text_input(
+                "Password",
+                value=st.session_state.login_password_val,
+                type="default" if st.session_state.tampil_password else "password",
+                label_visibility="collapsed",
+                placeholder="",
+                key="scenic_pw_field",
+            )
+            st.session_state.login_password_val = password_input
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            st.markdown(
+                """
+                <script>
+                    const pwWrappers = window.parent.document.querySelectorAll('.pw-box-wrapper');
+                    pwWrappers.forEach(w => {
+                        const ti = w.querySelector('[data-testid="stTextInput"]');
+                        if (ti) ti.classList.add('pw-box-input');
+                    });
+                </script>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            st.markdown(
+                '<div class="login-submit-btn">', unsafe_allow_html=True
+            )
+            klik_masuk = st.button(
+                "Masuk",
+                key="btn_scenic_masuk",
+                use_container_width=True,
+            )
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            if klik_masuk:
+                if "auth" not in st.secrets:
+                    st.error(
+                        "Konfigurasi [auth] belum diatur di .streamlit/secrets.toml."
+                    )
+                else:
+                    auth_cfg = st.secrets["auth"]
+                    nama_bersih = username_input.strip()
+                    pass_bersih = password_input
+
+                    if not nama_bersih or not pass_bersih:
+                        st.error("Username dan password wajib diisi.")
+                    else:
+                        kandidat_akun = []
+                        if "users" in auth_cfg and isinstance(
+                            auth_cfg["users"], (list, tuple)
+                        ):
+                            for item in auth_cfg["users"]:
+                                if isinstance(item, dict):
+                                    u = str(item.get("username", "")).strip()
+                                    p = str(item.get("password", ""))
+                                    if u and p:
+                                        kandidat_akun.append((u, p))
+
+                        single_u = str(auth_cfg.get("username", "")).strip()
+                        single_p = str(auth_cfg.get("password", ""))
+                        if single_u and single_p:
+                            kandidat_akun.append((single_u, single_p))
+
+                        cocok = False
+                        user_valid = ""
+                        for u_benar, p_benar in kandidat_akun:
+                            if hmac.compare_digest(
+                                nama_bersih.lower().encode("utf-8"),
+                                u_benar.lower().encode("utf-8"),
+                            ) and hmac.compare_digest(
+                                pass_bersih.encode("utf-8"),
+                                p_benar.encode("utf-8"),
+                            ):
+                                cocok = True
+                                user_valid = u_benar
+                                break
+
+                        if cocok:
+                            st.session_state.terlogin = True
+                            st.session_state.user_aktif = user_valid
+                            st.session_state.login_password_val = ""
+                            st.session_state.tampil_password = False
+                            st.rerun()
+                        else:
+                            st.error("Username atau password tidak sesuai.")
+
+    st.stop()
+
+
 st.markdown(
     """
     <style>
@@ -55,28 +392,6 @@ st.markdown(
             font-weight: 700;
             color: #2C180B !important;
             margin-top: 0.25rem;
-        }
-
-        .login-card-header {
-            background: linear-gradient(180deg, #FBBF24 0%, #F59E0B 100%);
-            color: #1A110B !important;
-            padding: 1rem 1.25rem;
-            border-radius: 12px 12px 0 0;
-            text-align: center;
-        }
-
-        .login-card-title {
-            font-size: 1.35rem;
-            font-weight: 800;
-            color: #1A110B !important;
-            margin: 0;
-        }
-
-        .login-card-sub {
-            font-size: 0.82rem;
-            font-weight: 700;
-            color: #2C180B !important;
-            margin-top: 0.2rem;
         }
 
         .metric-box {
@@ -245,99 +560,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
-
-def validasi_kredensial(nama_input: str, password_input: str) -> tuple[bool, str]:
-    if "auth" not in st.secrets:
-        return (
-            False,
-            "Konfigurasi [auth] belum diatur di .streamlit/secrets.toml.",
-        )
-
-    auth_cfg = st.secrets["auth"]
-    nama_bersih = nama_input.strip()
-    pass_bersih = password_input
-
-    if not nama_bersih or not pass_bersih:
-        return False, "Nama dan password wajib diisi."
-
-    kandidat_akun = []
-
-    if "users" in auth_cfg and isinstance(auth_cfg["users"], (list, tuple)):
-        for item in auth_cfg["users"]:
-            if isinstance(item, dict):
-                u = str(item.get("username", "")).strip()
-                p = str(item.get("password", ""))
-                if u and p:
-                    kandidat_akun.append((u, p))
-
-    single_u = str(auth_cfg.get("username", "")).strip()
-    single_p = str(auth_cfg.get("password", ""))
-    if single_u and single_p:
-        kandidat_akun.append((single_u, single_p))
-
-    if not kandidat_akun:
-        return (
-            False,
-            "Username atau password belum terisi pada bagian [auth] di secrets.toml.",
-        )
-
-    for u_benar, p_benar in kandidat_akun:
-        cocok_nama = hmac.compare_digest(
-            nama_bersih.lower().encode("utf-8"),
-            u_benar.lower().encode("utf-8"),
-        )
-        cocok_pass = hmac.compare_digest(
-            pass_bersih.encode("utf-8"),
-            p_benar.encode("utf-8"),
-        )
-        if cocok_nama and cocok_pass:
-            return True, u_benar
-
-    return False, "Nama atau password tidak sesuai."
-
-
-if "terlogin" not in st.session_state:
-    st.session_state.terlogin = False
-if "user_aktif" not in st.session_state:
-    st.session_state.user_aktif = ""
-
-
-if not st.session_state.terlogin:
-    _, col_login, _ = st.columns([1.0, 1.15, 1.0])
-    with col_login:
-        st.markdown("<div style='height: 1.5rem;'></div>", unsafe_allow_html=True)
-        st.markdown(
-            """
-            <div class="login-card-header">
-                <div class="login-card-title">🔐 Login Bakery Inventory</div>
-                <div class="login-card-sub">Bakery Production &amp; Raw Material Inventory System</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        with st.form("form_login_dashboard"):
-            nama_login = st.text_input("Nama", placeholder="Masukkan nama akun")
-            password_login = st.text_input(
-                "Password",
-                type="password",
-                placeholder="Masukkan password",
-            )
-            submit_login = st.form_submit_button(
-                "Masuk", type="primary", width="stretch"
-            )
-
-        if submit_login:
-            sukses, info_akun = validasi_kredensial(nama_login, password_login)
-            if sukses:
-                st.session_state.terlogin = True
-                st.session_state.user_aktif = info_akun
-                st.rerun()
-            else:
-                st.error(info_akun)
-
-    st.stop()
-
 
 top_bar_left, top_bar_right = st.columns([5.5, 1.0])
 with top_bar_left:
