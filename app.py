@@ -8,10 +8,159 @@ import streamlit as st
 
 st.set_page_config(
     page_title="Dashboard Produksi & Stok Bahan Baku Roti",
+    page_icon="🍞",
     layout="wide",
 )
 
-st.title("Dashboard Produksi & Stok Bahan Baku Roti")
+st.markdown(
+    """
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+        html, body, [class*="css"] {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .stApp {
+            background: radial-gradient(circle at top right, #2A1B12 0%, #16100D 52%, #100C0A 100%);
+            color: #FBF5EE;
+        }
+
+        .hero-card {
+            background: linear-gradient(125deg, #2D1A10 0%, #4A2814 55%, #78350F 100%);
+            border: 1px solid #6B3B1E;
+            padding: 1.45rem 1.8rem;
+            border-radius: 18px;
+            color: #FFFBEB;
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+            margin-bottom: 1.15rem;
+        }
+
+        .hero-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin: 0 0 0.35rem 0;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-sub {
+            font-size: 0.92rem;
+            color: #FDE68A;
+            margin: 0 0 0.9rem 0;
+        }
+
+        .badge-chip {
+            display: inline-block;
+            background: rgba(245, 158, 11, 0.16);
+            border: 1px solid rgba(251, 191, 36, 0.38);
+            color: #FEF3C7;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-right: 0.45rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-card {
+            background: #211712;
+            border: 1px solid #3A281E;
+            border-top: 4px solid #F59E0B;
+            border-radius: 15px;
+            padding: 1.05rem 1.2rem;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+            transition: transform 0.15s ease, border-color 0.15s ease;
+            min-height: 118px;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: #9A5B2C;
+        }
+
+        .stat-card.danger {
+            border-top-color: #EF4444;
+        }
+
+        .stat-card.success {
+            border-top-color: #10B981;
+        }
+
+        .stat-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #D6B89C;
+            margin-bottom: 0.35rem;
+        }
+
+        .stat-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #FFFBEB;
+            line-height: 1.2;
+        }
+
+        .stat-meta {
+            font-size: 0.78rem;
+            color: #A88B73;
+            margin-top: 0.3rem;
+        }
+
+        .panel-card {
+            background: #1D1410;
+            border: 1px solid #35251C;
+            border-radius: 15px;
+            padding: 1.15rem 1.25rem;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.24);
+            margin-bottom: 0.85rem;
+        }
+
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 0.45rem;
+            background-color: #1E1511;
+            border: 1px solid #35251C;
+            padding: 0.4rem;
+            border-radius: 13px;
+        }
+
+        .stTabs [data-baseweb="tab"] {
+            border-radius: 9px;
+            padding: 0.52rem 0.95rem;
+            font-weight: 600;
+            color: #D6B89C;
+        }
+
+        .stTabs [aria-selected="true"] {
+            background: linear-gradient(135deg, #D97706 0%, #B45309 100%) !important;
+            color: #FFFBEB !important;
+            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.28);
+        }
+
+        div[data-testid="stDataFrame"] {
+            background: #1B120E;
+            border: 1px solid #35251C;
+            border-radius: 13px;
+            padding: 0.2rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    <div class="hero-card">
+        <div class="hero-title">🍞 Dashboard Produksi &amp; Stok Bahan Baku Roti</div>
+        <div class="hero-sub">Kontrol stok real-time, pencatatan resep (Original, Cokelat, Cranberry), dan notifikasi Telegram multi-penerima</div>
+        <span class="badge-chip">Dark Mode Active</span>
+        <span class="badge-chip">Google Sheets Sync</span>
+        <span class="badge-chip">Telegram Multi-ID</span>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 def kirim_notifikasi_telegram(pesan: str) -> bool:
@@ -165,26 +314,63 @@ total_produksi = (
     else 0
 )
 
-m1, m2, m3, m4 = st.columns(4)
-m1.metric("Total Jenis Bahan", f"{total_item} Bahan")
-m2.metric("Stok Menipis / Kritis", f"{low_stock_count} Item")
-m3.metric("Total Resep Diproduksi", f"{total_produksi} Resep")
+m1, m2, m3, m4 = st.columns([1.2, 1.2, 1.2, 0.85])
+with m1:
+    st.markdown(
+        f"""
+        <div class="stat-card success">
+            <div class="stat-label">Total Jenis Bahan</div>
+            <div class="stat-value">{total_item} Bahan</div>
+            <div class="stat-meta">Terdaftar di Stok Bahan Baku</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+with m2:
+    card_cls = "danger" if low_stock_count > 0 else "success"
+    meta_txt = (
+        "Perlu perhatian / restock"
+        if low_stock_count > 0
+        else "Semua stok di atas batas minimum"
+    )
+    st.markdown(
+        f"""
+        <div class="stat-card {card_cls}">
+            <div class="stat-label">Stok Menipis / Kritis</div>
+            <div class="stat-value">{low_stock_count} Item</div>
+            <div class="stat-meta">{meta_txt}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+with m3:
+    st.markdown(
+        f"""
+        <div class="stat-card">
+            <div class="stat-label">Total Resep Diproduksi</div>
+            <div class="stat-value">{total_produksi} Resep</div>
+            <div class="stat-meta">Akumulasi seluruh varian</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 with m4:
-    st.write("")
-    if st.button("Refresh Data", width="stretch"):
+    st.markdown("<div style='height: 1.55rem;'></div>", unsafe_allow_html=True)
+    if st.button("🔄 Refresh Data", width="stretch"):
         st.cache_data.clear()
         st.rerun()
 
-st.divider()
+st.markdown("<div style='height: 0.7rem;'></div>", unsafe_allow_html=True)
 
 tab_resep, tab_stok, tab_grafik, tab_riwayat = st.tabs([
-    "1. Pembuatan Resep",
-    "2. Data Stok Bahan Baku",
-    "3. Grafik",
-    "4. Riwayat Buat Resep & Penambahan Stock",
+    "🥖 1. Pembuatan Resep",
+    "📦 2. Data Stok Bahan Baku",
+    "📊 3. Grafik",
+    "🧾 4. Riwayat Buat Resep & Penambahan Stock",
 ])
 
 with tab_resep:
+    st.markdown('<div class="panel-card">', unsafe_allow_html=True)
     st.subheader("Pembuatan Resep Produksi")
     st.caption(
         "Pilih varian roti, masukkan jumlah resep, lalu simpan untuk memotong stok otomatis."
@@ -193,7 +379,7 @@ with tab_resep:
     v1, v2, v3 = st.columns(3)
     with v1:
         if st.button(
-            "Original",
+            "🥖 Original",
             type="primary"
             if st.session_state.varian_terpilih == "Original"
             else "secondary",
@@ -203,7 +389,7 @@ with tab_resep:
             st.rerun()
     with v2:
         if st.button(
-            "Cokelat",
+            "🍫 Cokelat",
             type="primary"
             if st.session_state.varian_terpilih == "Cokelat"
             else "secondary",
@@ -213,7 +399,7 @@ with tab_resep:
             st.rerun()
     with v3:
         if st.button(
-            "Cranberry",
+            "🍒 Cranberry",
             type="primary"
             if st.session_state.varian_terpilih == "Cranberry"
             else "secondary",
@@ -232,7 +418,7 @@ with tab_resep:
         kandidat_kolom[0],
     )
 
-    st.info(f"**Varian Dipilih:** {varian} (Menggunakan kolom: `{kolom_resep}`)")
+    st.info(f"**Varian Aktif:** {varian}  •  **Kolom Acuan:** `{kolom_resep}`")
 
     c_in1, c_in2 = st.columns(2)
     with c_in1:
@@ -251,6 +437,12 @@ with tab_resep:
     cek_df = cek_df[cek_df[kolom_resep] > 0]
     cek_df["Kebutuhan Total"] = cek_df[kolom_resep] * jumlah_resep
     cek_df["Sisa Stok"] = cek_df["Stok Awal"] - cek_df["Kebutuhan Total"]
+    cek_df["Status Simulasi"] = cek_df.apply(
+        lambda r: "Kurang Stok"
+        if r["Sisa Stok"] < 0
+        else ("Menipis" if r["Sisa Stok"] <= r["Stok Min"] else "Aman"),
+        axis=1,
+    )
 
     st.markdown("**Simulasi Pemakaian Bahan Baku:**")
     st.dataframe(cek_df, width="stretch", hide_index=True)
@@ -262,7 +454,7 @@ with tab_resep:
             + ", ".join(stok_kurang["Nama Barang"].tolist())
         )
     else:
-        if st.button("Simpan & Potong Stok", type="primary", width="stretch"):
+        if st.button("✅ Simpan & Potong Stok", type="primary", width="stretch"):
             sh = get_spreadsheet()
             ws_stok = sh.worksheet("Stok Bahan Baku")
             ws_prod = sh.worksheet("Riwayat_Produksi")
@@ -331,13 +523,15 @@ with tab_resep:
                     f"Produksi {varian} sebanyak {jumlah_resep} resep berhasil dicatat dan stok diperbarui."
                 )
             st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_stok:
     st.subheader("Data Stok Bahan Baku")
 
-    col_tabel, col_tambah = st.columns([2.2, 1])
+    col_tabel, col_tambah = st.columns([2.15, 1.05])
 
     with col_tabel:
+        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
         df_tampil = df_stok.copy()
         df_tampil["Status Stok"] = df_tampil.apply(
             lambda r: "Menipis / Perlu Restock"
@@ -355,9 +549,11 @@ with tab_stok:
             df_tampil = df_tampil[df_tampil["Status Stok"] == filter_status]
 
         st.dataframe(df_tampil, width="stretch", hide_index=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with col_tambah:
-        st.markdown("### Tambah Stok Masuk")
+        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+        st.markdown("### ➕ Tambah Stok Masuk")
         daftar_bahan = df_stok["Nama Barang"].tolist()
         with st.form("form_tambah_bahan"):
             bahan_dipilih = st.selectbox("Pilih Bahan Baku", options=daftar_bahan)
@@ -426,65 +622,112 @@ with tab_stok:
                     f"Stok {bahan_dipilih} bertambah +{jumlah_masuk} menjadi {stok_baru}."
                 )
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_grafik:
     st.subheader("Visualisasi Stok Bahan Baku & Produksi")
 
-    if (
-        not df_stok.empty
-        and "Nama Barang" in df_stok.columns
-        and "Stok Awal" in df_stok.columns
-    ):
-        df_chart = df_stok[["Nama Barang", "Stok Awal", "Stok Min"]].melt(
-            id_vars="Nama Barang",
-            value_vars=["Stok Awal", "Stok Min"],
-            var_name="Kategori",
-            value_name="Jumlah",
-        )
-        fig_stok = px.bar(
-            df_chart,
-            x="Nama Barang",
-            y="Jumlah",
-            color="Kategori",
-            barmode="group",
-            title="Perbandingan Stok Saat Ini vs Stok Minimum",
-            color_discrete_map={"Stok Awal": "#2E86C1", "Stok Min": "#E74C3C"},
-        )
-        st.plotly_chart(fig_stok, width="stretch")
+    g1, g2 = st.columns(2)
 
-    if (
-        not df_prod.empty
-        and "Varian" in df_prod.columns
-        and "Jumlah Resep" in df_prod.columns
-    ):
-        df_prod_chart = df_prod.copy()
-        df_prod_chart["Jumlah Resep"] = parse_number(df_prod_chart["Jumlah Resep"])
-        rekap_varian = df_prod_chart.groupby("Varian", as_index=False)[
-            "Jumlah Resep"
-        ].sum()
-        fig_prod = px.bar(
-            rekap_varian,
-            x="Varian",
-            y="Jumlah Resep",
-            color="Varian",
-            title="Total Resep Diproduksi per Varian",
-        )
-        st.plotly_chart(fig_prod, width="stretch")
+    with g1:
+        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+        if (
+            not df_stok.empty
+            and "Nama Barang" in df_stok.columns
+            and "Stok Awal" in df_stok.columns
+        ):
+            df_chart = df_stok[["Nama Barang", "Stok Awal", "Stok Min"]].melt(
+                id_vars="Nama Barang",
+                value_vars=["Stok Awal", "Stok Min"],
+                var_name="Kategori",
+                value_name="Jumlah",
+            )
+            fig_stok = px.bar(
+                df_chart,
+                x="Nama Barang",
+                y="Jumlah",
+                color="Kategori",
+                barmode="group",
+                title="Stok Saat Ini vs Batas Minimum",
+                color_discrete_map={
+                    "Stok Awal": "#38BDF8",
+                    "Stok Min": "#FB7185",
+                },
+            )
+            fig_stok.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="#160F0C",
+                font=dict(color="#FBF5EE"),
+                legend=dict(
+                    bgcolor="rgba(27,18,14,0.85)",
+                    bordercolor="#3A281E",
+                    borderwidth=1,
+                ),
+                xaxis=dict(gridcolor="#2B1E17", linecolor="#4A3528"),
+                yaxis=dict(gridcolor="#2B1E17", linecolor="#4A3528"),
+            )
+            st.plotly_chart(fig_stok, width="stretch")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with g2:
+        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
+        if (
+            not df_prod.empty
+            and "Varian" in df_prod.columns
+            and "Jumlah Resep" in df_prod.columns
+        ):
+            df_prod_chart = df_prod.copy()
+            df_prod_chart["Jumlah Resep"] = parse_number(
+                df_prod_chart["Jumlah Resep"]
+            )
+            rekap_varian = df_prod_chart.groupby("Varian", as_index=False)[
+                "Jumlah Resep"
+            ].sum()
+            fig_prod = px.bar(
+                rekap_varian,
+                x="Varian",
+                y="Jumlah Resep",
+                color="Varian",
+                title="Total Resep Diproduksi per Varian",
+                color_discrete_map={
+                    "Original": "#34D399",
+                    "Cokelat": "#FBBF24",
+                    "Cranberry": "#F472B6",
+                },
+            )
+            fig_prod.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="#160F0C",
+                font=dict(color="#FBF5EE"),
+                legend=dict(
+                    bgcolor="rgba(27,18,14,0.85)",
+                    bordercolor="#3A281E",
+                    borderwidth=1,
+                ),
+                xaxis=dict(gridcolor="#2B1E17", linecolor="#4A3528"),
+                yaxis=dict(gridcolor="#2B1E17", linecolor="#4A3528"),
+            )
+            st.plotly_chart(fig_prod, width="stretch")
+        st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_riwayat:
     st.subheader("Riwayat Pembuatan Resep & Penambahan Stock")
 
     col_r1, col_r2 = st.columns(2)
     with col_r1:
+        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
         st.markdown("### Riwayat Pembuatan Resep")
         if df_prod.empty:
             st.info("Belum ada riwayat pembuatan resep.")
         else:
             st.dataframe(df_prod, width="stretch", hide_index=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with col_r2:
+        st.markdown('<div class="panel-card">', unsafe_allow_html=True)
         st.markdown("### Riwayat Penambahan Stock")
         if df_masuk.empty:
             st.info("Belum ada riwayat penambahan stok.")
         else:
             st.dataframe(df_masuk, width="stretch", hide_index=True)
+        st.markdown("</div>", unsafe_allow_html=True)
