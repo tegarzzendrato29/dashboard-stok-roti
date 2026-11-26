@@ -1,7 +1,5 @@
-import base64
 from datetime import datetime
 import hmac
-from pathlib import Path
 import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
@@ -20,37 +18,12 @@ LOGIN_BG_URL = (
     "?auto=format&fit=crop&w=1920&q=85"
 )
 
-LOGO_CANDIDATE_PATHS = [
-    "assets/logo_gunadarma.webp",
-    "assets/logo-universitas-gunadarma-png-svg.webp",
-    "logo_gunadarma.webp",
-]
-
-
-def get_logo_data_uri(candidate_paths: list[str]) -> str:
-    for raw_path in candidate_paths:
-        path = Path(raw_path)
-        if path.exists() and path.is_file():
-            ext = path.suffix.lower().lstrip(".")
-            mime = "image/webp" if ext == "webp" else f"image/{ext or 'png'}"
-            encoded = base64.b64encode(path.read_bytes()).decode("utf-8")
-            return f"data:{mime};base64,{encoded}"
-    return ""
-
-
 if "terlogin" not in st.session_state:
     st.session_state.terlogin = False
 if "user_aktif" not in st.session_state:
     st.session_state.user_aktif = ""
 
 if not st.session_state.terlogin:
-    logo_uri = get_logo_data_uri(LOGO_CANDIDATE_PATHS)
-    logo_html = (
-        f'<div class="login-top-left-logo"><img src="{logo_uri}" alt="Logo Universitas Gunadarma" /></div>'
-        if logo_uri
-        else ""
-    )
-
     st.markdown(
         f"""
         <style>
@@ -85,38 +58,6 @@ if not st.session_state.terlogin:
             [data-testid="stToolbar"],
             [data-testid="stDecoration"] {{
                 background: transparent !important;
-            }}
-
-            /* Logo Universitas Gunadarma di pojok kiri atas (besar & tanpa kotak background) */
-            .login-top-left-logo {{
-                position: fixed;
-                top: 16px;
-                left: 20px;
-                z-index: 999;
-                background: transparent !important;
-                border: none !important;
-                border-radius: 0 !important;
-                padding: 0 !important;
-                box-shadow: none !important;
-                pointer-events: none;
-            }}
-
-            .login-top-left-logo img {{
-                height: 108px;
-                width: auto;
-                display: block;
-                background: transparent !important;
-                filter: drop-shadow(0 6px 14px rgba(15, 23, 42, 0.42));
-            }}
-
-            @media (max-width: 768px) {{
-                .login-top-left-logo {{
-                    top: 12px;
-                    left: 14px;
-                }}
-                .login-top-left-logo img {{
-                    height: 76px;
-                }}
             }}
 
             /* Kotak login putih solid menyeluruh */
@@ -241,9 +182,6 @@ if not st.session_state.terlogin:
         """,
         unsafe_allow_html=True,
     )
-
-    if logo_html:
-        st.markdown(logo_html, unsafe_allow_html=True)
 
     _, center_col, _ = st.columns([1.15, 1.2, 1.15])
     with center_col:
