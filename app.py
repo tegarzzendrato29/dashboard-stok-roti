@@ -95,6 +95,27 @@ st.markdown(
             line-height: 1.15;
         }
 
+        .mini-summary-card {
+            background: #1B130F;
+            border: 1px solid #4A3528;
+            border-radius: 10px;
+            padding: 0.65rem 0.85rem;
+            text-align: center;
+        }
+
+        .mini-summary-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #FDE68A !important;
+        }
+
+        .mini-summary-val {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #FFFFFF !important;
+            margin-top: 0.15rem;
+        }
+
         .stTabs [data-baseweb="tab-list"] {
             gap: 1.5rem;
             background-color: #1A120E;
@@ -465,7 +486,10 @@ except Exception as e:
 
 
 daftar_varian = get_available_variants(df_stok)
-if "varian_terpilih" not in st.session_state or st.session_state.varian_terpilih not in daftar_varian:
+if (
+    "varian_terpilih" not in st.session_state
+    or st.session_state.varian_terpilih not in daftar_varian
+):
     st.session_state.varian_terpilih = daftar_varian[0]
 
 
@@ -701,11 +725,17 @@ with tab_resep:
                         df_resep_update[kolom_v_baru] = df_resep_update[
                             "Nama Barang"
                         ].map(
-                            lambda b: int(input_takaran_resep.get(str(b).strip(), 0))
+                            lambda b: int(
+                                input_takaran_resep.get(str(b).strip(), 0)
+                            )
                         )
 
                         sync_dataframe_to_stok_sheet(
-                            ws_stok, raw_stok, header_idx, new_headers, df_resep_update
+                            ws_stok,
+                            raw_stok,
+                            header_idx,
+                            new_headers,
+                            df_resep_update,
                         )
 
                         pesan_tg = (
@@ -750,10 +780,14 @@ with tab_resep:
                     kol_target = opsi_hapus_resep[varian_hapus]
                     sh = get_spreadsheet()
                     ws_stok = sh.worksheet("Stok Bahan Baku")
-                    raw_stok, header_idx, headers = get_stok_sheet_layout(ws_stok)
+                    raw_stok, header_idx, headers = get_stok_sheet_layout(
+                        ws_stok
+                    )
 
                     new_headers = [h for h in headers if h != kol_target]
-                    df_after_del = df_stok.drop(columns=[kol_target], errors="ignore")
+                    df_after_del = df_stok.drop(
+                        columns=[kol_target], errors="ignore"
+                    )
 
                     sync_dataframe_to_stok_sheet(
                         ws_stok, raw_stok, header_idx, new_headers, df_after_del
@@ -1023,7 +1057,9 @@ with tab_stok:
                 ):
                     sh = get_spreadsheet()
                     ws_stok = sh.worksheet("Stok Bahan Baku")
-                    raw_stok, header_idx, headers = get_stok_sheet_layout(ws_stok)
+                    raw_stok, header_idx, headers = get_stok_sheet_layout(
+                        ws_stok
+                    )
 
                     df_bahan_sisa = df_stok[
                         df_stok["Nama Barang"].astype(str).str.strip()
@@ -1291,7 +1327,106 @@ with tab_riwayat:
         if df_prod.empty:
             st.info("Belum ada riwayat pembuatan resep.")
         else:
-            st.dataframe(df_prod, width="stretch", hide_index=True)
+            df_prod_filtered = df_prod.copy()
+            kol_waktu = next(
+                (
+                    c
+                    for c in df_prod_filtered.columns
+                    if "waktu" in c.lower() or "tanggal" in c.lower()
+                ),
+                df_prod_filtered.columns[0],
+            )
+            dt_parsed = pd.to_datetime(
+                df_prod_filtered[kol_waktu], errors="coerce"
+            )
+            valid_dates = dt_parsed.dropna()
+
+            f_r1, f_r2 = st.columns(2)
+            with f_r1:
+                varian_riwayat_opts = ["Semua"] + daftar_varian
+                if "Varian" in df_prod_filtered.columns:
+                    extra_v = [
+                        str(v).strip()
+                        for v in df_prod_filtered["Varian"].dropna().unique()
+                        if str(v).strip() and str(v).strip() not in varian_riwayat_opts
+                    ]
+                    varian_riwayat_opts.extend(extra_v)
+                pilih_varian_riwayat = st.selectbox(
+                    "Filter Varian",
+                    options=varian_riwayat_opts,
+                    key="sb_riwayat_varian",
+                )
+
+            with f_r2:
+                if not valid_dates.empty:
+                    min_tgl = valid_dates.min().date()
+                    max_tgl = valid_dates.max().date()
+                    rentang_tgl = st.date_input(
+                        "Rentang Tanggal",
+                        value=(min_tgl, max_tgl),
+                        min_value=min_tgl,
+                        max_value=max_tgl,
+                        key="di_riwayat_tanggal",
+                    )
+                else:
+                    rentang_tgl = None
+
+            if (
+                "Varian" in df_prod_filtered.columns
+                and pilih_varian_riwayat != "Semua"
+            ):
+                df_prod_filtered = df_prod_filtered[
+                    df_prod_filtered["Varian"].astype(str).str.strip().str.lower()
+                    == pilih_varian_riwayat.lower()
+                ]
+
+            if rentang_tgl is not None and not valid_dates.empty:
+                if isinstance(rentang_tgl, (list, tuple)) and len(rentang_tgl) == 2:
+                    tgl_awal, tgl_akhir = rentang_tgl
+                    mask_tgl = (
+                        dt_parsed.dt.date.notna()
+                        & (dt_parsed.dt.date >= tgl_awal)
+                        & (dt_parsed.dt.date <= tgl_akhir)
+                    )
+                    df_prod_filtered = df_prod_filtered[mask_tgl]
+                elif isinstance(rentang_tgl, (list, tuple)) and len(rentang_tgl) == 1:
+                    tgl_tunggal = rentang_tgl[0]
+                    df_prod_filtered = df_prod_filtered[
+                        dt_parsed.dt.date == tgl_tunggal
+                    ]
+
+            ringkasan_varian = ["Original", "Cokelat", "Cranberry"]
+            for v_item in daftar_varian:
+                if v_item not in ringkasan_varian:
+                    ringkasan_varian.append(v_item)
+
+            if (
+                not df_prod_filtered.empty
+                and "Varian" in df_prod_filtered.columns
+                and "Jumlah Resep" in df_prod_filtered.columns
+            ):
+                jml_series = parse_number(df_prod_filtered["Jumlah Resep"])
+                var_series = (
+                    df_prod_filtered["Varian"].astype(str).str.strip().str.lower()
+                )
+                ringkasan_cols = st.columns(len(ringkasan_varian))
+                for idx_s, v_label in enumerate(ringkasan_varian):
+                    total_v = int(
+                        round(jml_series[var_series == v_label.lower()].sum())
+                    )
+                    with ringkasan_cols[idx_s]:
+                        st.markdown(
+                            f"""
+                            <div class="mini-summary-card">
+                                <div class="mini-summary-label">{v_label}</div>
+                                <div class="mini-summary-val">{total_v}</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+                st.markdown("<div style='height: 0.45rem;'></div>", unsafe_allow_html=True)
+
+            st.dataframe(df_prod_filtered, width="stretch", hide_index=True)
 
     with col_r2:
         st.markdown("### Riwayat Penambahan Stock")
