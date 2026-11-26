@@ -87,7 +87,7 @@ if not st.session_state.terlogin:
                 background: transparent !important;
             }}
 
-            /* Logo Universitas Gunadarma di pojok kiri atas tanpa kotak/background & lebih besar */
+            /* Logo Universitas Gunadarma di pojok kiri atas (besar & tanpa kotak background) */
             .login-top-left-logo {{
                 position: fixed;
                 top: 16px;
@@ -102,11 +102,11 @@ if not st.session_state.terlogin:
             }}
 
             .login-top-left-logo img {{
-                height: 78px;
+                height: 108px;
                 width: auto;
                 display: block;
                 background: transparent !important;
-                filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.78)) drop-shadow(0 4px 12px rgba(15, 23, 42, 0.35));
+                filter: drop-shadow(0 6px 14px rgba(15, 23, 42, 0.42));
             }}
 
             @media (max-width: 768px) {{
@@ -115,7 +115,7 @@ if not st.session_state.terlogin:
                     left: 14px;
                 }}
                 .login-top-left-logo img {{
-                    height: 56px;
+                    height: 76px;
                 }}
             }}
 
