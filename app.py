@@ -19,16 +19,21 @@ st.markdown(
 
         html, body, [class*="css"] {
             font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #F9F3EC;
         }
 
         .stApp {
             background: radial-gradient(circle at top center, #261810 0%, #140E0B 58%, #0E0A08 100%);
-            color: #F7EFE6;
+            color: #F9F3EC;
+        }
+
+        h1, h2, h3, h4, h5, h6, p, span, div, label {
+            color: #F9F3EC;
         }
 
         .sketch-hero {
             background: linear-gradient(180deg, #FBBF24 0%, #F59E0B 100%);
-            color: #1A110B;
+            color: #1A110B !important;
             padding: 1.15rem 1.6rem;
             border-radius: 14px;
             box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
@@ -41,18 +46,19 @@ st.markdown(
             font-weight: 800;
             letter-spacing: -0.02em;
             margin: 0;
+            color: #1A110B !important;
         }
 
         .sketch-hero-sub {
             font-size: 0.86rem;
-            font-weight: 600;
-            color: #3B2313;
+            font-weight: 700;
+            color: #2C180B !important;
             margin-top: 0.25rem;
         }
 
         .metric-box {
             background: #1B130F;
-            border: 1px solid #3B2A1F;
+            border: 1px solid #4A3528;
             border-radius: 12px;
             padding: 1rem 1.2rem;
             box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
@@ -61,7 +67,7 @@ st.markdown(
 
         .metric-box.alert-highlight {
             background: linear-gradient(135deg, #451A03 0%, #78350F 100%);
-            border: 1px solid #F59E0B;
+            border: 1px solid #FBBF24;
         }
 
         .metric-top {
@@ -72,49 +78,111 @@ st.markdown(
         }
 
         .metric-title {
-            font-size: 0.88rem;
-            font-weight: 600;
-            color: #E5D3C1;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #FDE68A !important;
         }
 
         .metric-icon {
             font-size: 1.25rem;
+            color: #FFFBEB !important;
         }
 
         .metric-num {
             font-size: 1.9rem;
             font-weight: 800;
-            color: #FFFBEB;
+            color: #FFFFFF !important;
             line-height: 1.15;
         }
 
         .stTabs [data-baseweb="tab-list"] {
             gap: 0.5rem;
-            background-color: transparent;
-            border-bottom: 1px solid #2E2018;
-            padding-bottom: 0.35rem;
+            background-color: #1A120E;
+            border: 1px solid #35251C;
+            border-radius: 10px;
+            padding: 0.35rem;
             margin-bottom: 0.75rem;
         }
 
         .stTabs [data-baseweb="tab"] {
             background-color: transparent;
             border-radius: 8px;
-            padding: 0.45rem 0.9rem;
-            font-weight: 600;
-            color: #C9B29E;
+            padding: 0.48rem 0.95rem;
+            font-weight: 700;
+            color: #E7D5C3 !important;
         }
 
         .stTabs [aria-selected="true"] {
-            background-color: rgba(245, 158, 11, 0.14) !important;
-            color: #FBBF24 !important;
-            border-bottom: 2px solid #F59E0B !important;
+            background: linear-gradient(180deg, #FBBF24 0%, #F59E0B 100%) !important;
+            color: #1A110B !important;
+        }
+
+        .stTabs [aria-selected="true"] p,
+        .stTabs [aria-selected="true"] span,
+        .stTabs [aria-selected="true"] div {
+            color: #1A110B !important;
+            font-weight: 700 !important;
         }
 
         div[data-testid="stDataFrame"] {
             background: #150E0B;
-            border: 1px solid #2F2118;
+            border: 1px solid #3B2A1F;
             border-radius: 12px;
             padding: 0.2rem;
+        }
+
+        div[data-testid="stAlert"] {
+            background-color: #241913 !important;
+            border: 1px solid #6B4423 !important;
+            color: #FFFBEB !important;
+        }
+
+        div[data-testid="stAlert"] p,
+        div[data-testid="stAlert"] span,
+        div[data-testid="stAlert"] div {
+            color: #FFFBEB !important;
+        }
+
+        input, textarea {
+            color: #FFFBEB !important;
+            background-color: #231812 !important;
+        }
+
+        div[data-baseweb="select"] > div {
+            background-color: #231812 !important;
+            color: #FFFBEB !important;
+            border-color: #4A3528 !important;
+        }
+
+        div[data-baseweb="select"] span,
+        div[data-baseweb="select"] div {
+            color: #FFFBEB !important;
+        }
+
+        button[kind="secondary"] {
+            background-color: #241913 !important;
+            color: #F9F3EC !important;
+            border: 1px solid #573E2D !important;
+            font-weight: 700 !important;
+        }
+
+        button[kind="secondary"]:hover {
+            border-color: #FBBF24 !important;
+            color: #FBBF24 !important;
+        }
+
+        button[kind="primary"] {
+            background: linear-gradient(180deg, #FBBF24 0%, #F59E0B 100%) !important;
+            color: #1A110B !important;
+            border: none !important;
+            font-weight: 800 !important;
+        }
+
+        button[kind="primary"] p,
+        button[kind="primary"] span,
+        button[kind="primary"] div {
+            color: #1A110B !important;
+            font-weight: 800 !important;
         }
     </style>
     """,
@@ -212,19 +280,33 @@ def parse_number(series: pd.Series) -> pd.Series:
     return pd.to_numeric(cleaned, errors="coerce").fillna(0.0)
 
 
+def add_gram_suffix(col_name: str) -> str:
+    clean_col = col_name.strip()
+    if clean_col in {"Nama Barang", "Status", "Status Stok"}:
+        return clean_col
+    if clean_col.endswith("(g)") or clean_col.endswith("(gram)"):
+        return clean_col
+    return f"{clean_col} (g)"
+
+
+def format_table_gram(df: pd.DataFrame) -> pd.DataFrame:
+    renamed = {col: add_gram_suffix(col) for col in df.columns}
+    return df.rename(columns=renamed)
+
+
 def highlight_status_rows(df: pd.DataFrame, status_col: str):
     def style_row(row: pd.Series):
         val = str(row.get(status_col, "")).strip().lower()
         if "menipis" in val or "kritis" in val or "kurang" in val:
             css = (
-                "background-color: #FDE047; color: #1A120B; font-weight: 700;"
+                "background-color: #FDE047; color: #1A120B; font-weight: 800;"
             )
         elif "aman" in val:
             css = (
-                "background-color: #14532D; color: #F0FDF4; font-weight: 600;"
+                "background-color: #14532D; color: #F0FDF4; font-weight: 700;"
             )
         else:
-            css = ""
+            css = "background-color: #1B130F; color: #F9F3EC; font-weight: 500;"
         return [css] * len(row)
 
     return df.style.apply(style_row, axis=1)
@@ -346,10 +428,10 @@ with m3:
 st.markdown("<div style='height: 0.45rem;'></div>", unsafe_allow_html=True)
 
 tab_resep, tab_stok, tab_grafik, tab_riwayat = st.tabs([
-    "1. Pembuatan Resep",
-    "2. Data Stok Bahan Baku",
-    "3. Grafik",
-    "4. Riwayat Buat Resep & Penambahan Stock",
+    "1. Pembuatan resep",
+    "Data stok bahan baku",
+    "Grafik",
+    "Riwayat buat resep & penambahan stock",
 ])
 
 with tab_resep:
@@ -483,7 +565,7 @@ with tab_resep:
                 ]["Nama Barang"].tolist()
 
                 daftar_pakai = "\n".join(
-                    f"- {row['Nama Barang']}: -{row['Kebutuhan Total']} (sisa {row['Sisa Stok']})"
+                    f"- {row['Nama Barang']}: -{row['Kebutuhan Total']} g (sisa {row['Sisa Stok']} g)"
                     for _, row in cek_df.iterrows()
                 )
                 teks_kritis = (
@@ -495,7 +577,7 @@ with tab_resep:
                     f"🍞 Update Produksi Roti ({waktu_sekarang})\n"
                     f"Varian: {varian} | Jumlah: {int(jumlah_resep)} resep\n"
                     f"Keterangan: {ket_prod}\n"
-                    f"Pemakaian:\n{daftar_pakai}"
+                    f"Pemakaian (gram):\n{daftar_pakai}"
                     f"{teks_kritis}"
                 )
                 terkirim = kirim_notifikasi_telegram(pesan_tg)
@@ -513,8 +595,9 @@ with tab_resep:
 
     with col_kanan:
         st.subheader("Daftar Kebutuhan & Sisa Stok")
+        cek_df_gram = format_table_gram(cek_df)
         st.dataframe(
-            highlight_status_rows(cek_df, "Status"),
+            highlight_status_rows(cek_df_gram, "Status"),
             width="stretch",
             hide_index=True,
         )
@@ -539,8 +622,9 @@ with tab_stok:
         if filter_status != "Semua Bahan":
             df_tampil = df_tampil[df_tampil["Status"] == filter_status]
 
+        df_tampil_gram = format_table_gram(df_tampil)
         st.dataframe(
-            highlight_status_rows(df_tampil, "Status"),
+            highlight_status_rows(df_tampil_gram, "Status"),
             width="stretch",
             hide_index=True,
         )
@@ -551,7 +635,7 @@ with tab_stok:
         with st.form("form_tambah_bahan"):
             bahan_dipilih = st.selectbox("Pilih Bahan Baku", options=daftar_bahan)
             jumlah_masuk = st.number_input(
-                "Jumlah Stok Masuk", min_value=0.1, value=1.0, step=0.5
+                "Jumlah Stok Masuk (g)", min_value=0.1, value=1.0, step=0.5
             )
             ket_masuk = st.text_input("Keterangan (opsional)", value="Restock")
             submit_masuk = st.form_submit_button(
@@ -600,7 +684,7 @@ with tab_stok:
             pesan_tg = (
                 f"📦 Penambahan Stok Masuk ({waktu_sekarang})\n"
                 f"Bahan: {bahan_dipilih}\n"
-                f"Masuk: +{float(jumlah_masuk)} | Stok Sekarang: {stok_baru}\n"
+                f"Masuk: +{float(jumlah_masuk)} g | Stok Sekarang: {stok_baru} g\n"
                 f"Keterangan: {ket_masuk}"
             )
             terkirim = kirim_notifikasi_telegram(pesan_tg)
@@ -608,11 +692,11 @@ with tab_stok:
             st.cache_data.clear()
             if terkirim:
                 st.success(
-                    f"Stok {bahan_dipilih} bertambah +{jumlah_masuk} menjadi {stok_baru} dan notifikasi Telegram terkirim."
+                    f"Stok {bahan_dipilih} bertambah +{jumlah_masuk} g menjadi {stok_baru} g dan notifikasi Telegram terkirim."
                 )
             else:
                 st.success(
-                    f"Stok {bahan_dipilih} bertambah +{jumlah_masuk} menjadi {stok_baru}."
+                    f"Stok {bahan_dipilih} bertambah +{jumlah_masuk} g menjadi {stok_baru} g."
                 )
             st.rerun()
 
@@ -631,15 +715,15 @@ with tab_grafik:
                 id_vars="Nama Barang",
                 value_vars=["Stok Awal", "Stok Min"],
                 var_name="Kategori",
-                value_name="Jumlah",
+                value_name="Jumlah (g)",
             )
             fig_stok = px.bar(
                 df_chart,
                 x="Nama Barang",
-                y="Jumlah",
+                y="Jumlah (g)",
                 color="Kategori",
                 barmode="group",
-                title="Stok Saat Ini vs Batas Minimum",
+                title="Stok Saat Ini vs Batas Minimum (gram)",
                 color_discrete_map={
                     "Stok Awal": "#FBBF24",
                     "Stok Min": "#FB7185",
@@ -648,14 +732,23 @@ with tab_grafik:
             fig_stok.update_layout(
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="#140D0A",
-                font=dict(color="#F7EFE6"),
+                font=dict(color="#FFFBEB"),
                 legend=dict(
-                    bgcolor="rgba(26,18,14,0.88)",
-                    bordercolor="#3B2A1F",
+                    bgcolor="rgba(26,18,14,0.92)",
+                    bordercolor="#4A3528",
                     borderwidth=1,
+                    font=dict(color="#FFFBEB"),
                 ),
-                xaxis=dict(gridcolor="#2A1C15", linecolor="#4A3528"),
-                yaxis=dict(gridcolor="#2A1C15", linecolor="#4A3528"),
+                xaxis=dict(
+                    gridcolor="#2A1C15",
+                    linecolor="#4A3528",
+                    tickfont=dict(color="#FFFBEB"),
+                ),
+                yaxis=dict(
+                    gridcolor="#2A1C15",
+                    linecolor="#4A3528",
+                    tickfont=dict(color="#FFFBEB"),
+                ),
             )
             st.plotly_chart(fig_stok, width="stretch")
 
@@ -687,14 +780,23 @@ with tab_grafik:
             fig_prod.update_layout(
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="#140D0A",
-                font=dict(color="#F7EFE6"),
+                font=dict(color="#FFFBEB"),
                 legend=dict(
-                    bgcolor="rgba(26,18,14,0.88)",
-                    bordercolor="#3B2A1F",
+                    bgcolor="rgba(26,18,14,0.92)",
+                    bordercolor="#4A3528",
                     borderwidth=1,
+                    font=dict(color="#FFFBEB"),
                 ),
-                xaxis=dict(gridcolor="#2A1C15", linecolor="#4A3528"),
-                yaxis=dict(gridcolor="#2A1C15", linecolor="#4A3528"),
+                xaxis=dict(
+                    gridcolor="#2A1C15",
+                    linecolor="#4A3528",
+                    tickfont=dict(color="#FFFBEB"),
+                ),
+                yaxis=dict(
+                    gridcolor="#2A1C15",
+                    linecolor="#4A3528",
+                    tickfont=dict(color="#FFFBEB"),
+                ),
             )
             st.plotly_chart(fig_prod, width="stretch")
 
