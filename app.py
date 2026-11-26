@@ -56,7 +56,7 @@ st.markdown(
             border-radius: 12px;
             padding: 1rem 1.2rem;
             box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
-            min-height: 112px;
+            min-height: 96px;
         }
 
         .metric-box.alert-highlight {
@@ -68,11 +68,11 @@ st.markdown(
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.4rem;
         }
 
         .metric-title {
-            font-size: 0.86rem;
+            font-size: 0.88rem;
             font-weight: 600;
             color: #E5D3C1;
         }
@@ -82,25 +82,10 @@ st.markdown(
         }
 
         .metric-num {
-            font-size: 1.85rem;
+            font-size: 1.9rem;
             font-weight: 800;
             color: #FFFBEB;
             line-height: 1.15;
-        }
-
-        .metric-sub {
-            font-size: 0.76rem;
-            color: #B89B84;
-            margin-top: 0.25rem;
-        }
-
-        .sketch-card {
-            background: #1A120E;
-            border: 1px solid #33241B;
-            border-radius: 14px;
-            padding: 1.15rem 1.25rem;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-            margin-bottom: 0.9rem;
         }
 
         .stTabs [data-baseweb="tab-list"] {
@@ -227,6 +212,24 @@ def parse_number(series: pd.Series) -> pd.Series:
     return pd.to_numeric(cleaned, errors="coerce").fillna(0.0)
 
 
+def highlight_status_rows(df: pd.DataFrame, status_col: str):
+    def style_row(row: pd.Series):
+        val = str(row.get(status_col, "")).strip().lower()
+        if "menipis" in val or "kritis" in val or "kurang" in val:
+            css = (
+                "background-color: #FDE047; color: #1A120B; font-weight: 700;"
+            )
+        elif "aman" in val:
+            css = (
+                "background-color: #14532D; color: #F0FDF4; font-weight: 600;"
+            )
+        else:
+            css = ""
+        return [css] * len(row)
+
+    return df.style.apply(style_row, axis=1)
+
+
 @st.cache_data(ttl=30)
 def load_all_data():
     sh = get_spreadsheet()
@@ -308,18 +311,12 @@ with m1:
                 <span class="metric-icon">🌾</span>
             </div>
             <div class="metric-num">{total_item}</div>
-            <div class="metric-sub">Bahan baku aktif di spreadsheet</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 with m2:
     alert_cls = "metric-box alert-highlight" if low_stock_count > 0 else "metric-box"
-    alert_sub = (
-        "Perlu segera restock"
-        if low_stock_count > 0
-        else "Semua bahan di atas batas minimum"
-    )
     st.markdown(
         f"""
         <div class="{alert_cls}">
@@ -328,7 +325,6 @@ with m2:
                 <span class="metric-icon">⚠️</span>
             </div>
             <div class="metric-num">{low_stock_count}</div>
-            <div class="metric-sub">{alert_sub}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -342,7 +338,6 @@ with m3:
                 <span class="metric-icon">📋</span>
             </div>
             <div class="metric-num">{total_produksi}</div>
-            <div class="metric-sub">Akumulasi produksi semua varian</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -361,11 +356,7 @@ with tab_resep:
     col_kiri, col_kanan = st.columns([1.05, 1.35])
 
     with col_kiri:
-        st.markdown('<div class="sketch-card">', unsafe_allow_html=True)
-        st.subheader("Simulasi Penggunaan Bahan")
-        st.caption(
-            "Pilih varian roti, atur jumlah resep, lalu simpan untuk memotong stok."
-        )
+        st.subheader("Buat Resep")
 
         v1, v2, v3 = st.columns(3)
         with v1:
@@ -519,45 +510,42 @@ with tab_resep:
                         f"Produksi {varian} sebanyak {jumlah_resep} resep berhasil dicatat dan stok diperbarui."
                     )
                 st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with col_kanan:
-        st.markdown('<div class="sketch-card">', unsafe_allow_html=True)
         st.subheader("Daftar Kebutuhan & Sisa Stok")
-        st.caption(
-            f"Perhitungan pemakaian bahan untuk {int(jumlah_resep)} resep varian {varian}."
+        st.dataframe(
+            highlight_status_rows(cek_df, "Status"),
+            width="stretch",
+            hide_index=True,
         )
-        st.dataframe(cek_df, width="stretch", hide_index=True)
-        st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_stok:
     col_tabel, col_tambah = st.columns([2.15, 1.05])
 
     with col_tabel:
-        st.markdown('<div class="sketch-card">', unsafe_allow_html=True)
         st.subheader("Data Stok Bahan Baku")
 
         df_tampil = df_stok.copy()
-        df_tampil["Status Stok"] = df_tampil.apply(
-            lambda r: "Menipis / Perlu Restock"
-            if r["Stok Awal"] <= r["Stok Min"]
-            else "Aman",
+        df_tampil["Status"] = df_tampil.apply(
+            lambda r: "Menipis" if r["Stok Awal"] <= r["Stok Min"] else "Aman",
             axis=1,
         )
 
         filter_status = st.selectbox(
             "Filter Status Stok",
-            options=["Semua Bahan", "Menipis / Perlu Restock", "Aman"],
+            options=["Semua Bahan", "Menipis", "Aman"],
             key="filter_status_stok",
         )
         if filter_status != "Semua Bahan":
-            df_tampil = df_tampil[df_tampil["Status Stok"] == filter_status]
+            df_tampil = df_tampil[df_tampil["Status"] == filter_status]
 
-        st.dataframe(df_tampil, width="stretch", hide_index=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.dataframe(
+            highlight_status_rows(df_tampil, "Status"),
+            width="stretch",
+            hide_index=True,
+        )
 
     with col_tambah:
-        st.markdown('<div class="sketch-card">', unsafe_allow_html=True)
         st.subheader("Tambah Stok Masuk")
         daftar_bahan = df_stok["Nama Barang"].tolist()
         with st.form("form_tambah_bahan"):
@@ -627,7 +615,6 @@ with tab_stok:
                     f"Stok {bahan_dipilih} bertambah +{jumlah_masuk} menjadi {stok_baru}."
                 )
             st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_grafik:
     st.subheader("Visualisasi Tren Stok & Produksi")
@@ -635,7 +622,6 @@ with tab_grafik:
     g1, g2 = st.columns(2)
 
     with g1:
-        st.markdown('<div class="sketch-card">', unsafe_allow_html=True)
         if (
             not df_stok.empty
             and "Nama Barang" in df_stok.columns
@@ -672,10 +658,8 @@ with tab_grafik:
                 yaxis=dict(gridcolor="#2A1C15", linecolor="#4A3528"),
             )
             st.plotly_chart(fig_stok, width="stretch")
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with g2:
-        st.markdown('<div class="sketch-card">', unsafe_allow_html=True)
         if (
             not df_prod.empty
             and "Varian" in df_prod.columns
@@ -713,26 +697,21 @@ with tab_grafik:
                 yaxis=dict(gridcolor="#2A1C15", linecolor="#4A3528"),
             )
             st.plotly_chart(fig_prod, width="stretch")
-        st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_riwayat:
     st.subheader("Riwayat Pembuatan Resep & Penambahan Stock")
 
     col_r1, col_r2 = st.columns(2)
     with col_r1:
-        st.markdown('<div class="sketch-card">', unsafe_allow_html=True)
         st.markdown("### Riwayat Pembuatan Resep")
         if df_prod.empty:
             st.info("Belum ada riwayat pembuatan resep.")
         else:
             st.dataframe(df_prod, width="stretch", hide_index=True)
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with col_r2:
-        st.markdown('<div class="sketch-card">', unsafe_allow_html=True)
         st.markdown("### Riwayat Penambahan Stock")
         if df_masuk.empty:
             st.info("Belum ada riwayat penambahan stok.")
         else:
             st.dataframe(df_masuk, width="stretch", hide_index=True)
-        st.markdown("</div>", unsafe_allow_html=True)
